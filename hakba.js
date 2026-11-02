@@ -63,7 +63,7 @@ function mockBackend(){
 }
 async function firebaseBackend(cfg){
   if(!window.firebase){ await loadScript('vendor/firebase-app-compat.js'); await loadScript('vendor/firebase-auth-compat.js'); await loadScript('vendor/firebase-firestore-compat.js'); }
-  const app=firebase.apps.length?firebase.app():firebase.initializeApp(cfg);
+  let app; try{ app=firebase.app(); }catch(e){ app=firebase.initializeApp(cfg); }
   const auth=firebase.auth(), fs=firebase.firestore();
   try{ await fs.enablePersistence({synchronizeTabs:true}); }catch(e){}
   if(/[?&]fresh=1/.test(location.search)) await auth.setPersistence(firebase.auth.Auth.Persistence.NONE); // للاختبار فقط
@@ -86,7 +86,7 @@ function backend(){
     if(!window.KHALES_FB) throw {code:'noconfig'};
     if(!navigator.onLine) throw {code:'offline'};
     return DB=await firebaseBackend(window.KHALES_FB);
-  })().catch(e=>{ ready=null; throw e; });
+  })().catch(e=>{ ready=null; console.error('hakba backend',e); throw e; });
   return ready;
 }
 
