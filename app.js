@@ -33,6 +33,11 @@ function dayIndex(){const d=new Date();return Math.floor((d-new Date(d.getFullYe
 
 const CUR={YER:'ريال يمني',SAR:'ريال سعودي',USD:'دولار أمريكي',EUR:'يورو',AED:'درهم إماراتي',KWD:'دينار كويتي',QAR:'ريال قطري',OMR:'ريال عماني',BHD:'دينار بحريني',EGP:'جنيه مصري',JOD:'دينار أردني',IQD:'دينار عراقي',SDG:'جنيه سوداني',SYP:'ليرة سورية',LBP:'ليرة لبنانية',LYD:'دينار ليبي',TND:'دينار تونسي',DZD:'دينار جزائري',MAD:'درهم مغربي',MRU:'أوقية موريتانية',TRY:'ليرة تركية',GBP:'جنيه إسترليني'};
 const curName=c=>CUR[c]||c;
+// قيمة تقريبية لعدد الوحدات مقابل الدولار — فقط لمعرفة أي عملة أقوى، فيُسأل دائمًا: ١ من العملة الأقوى = كم من الأضعف
+const PER_USD={USD:1,EUR:0.92,GBP:0.78,KWD:0.31,BHD:0.376,OMR:0.385,JOD:0.71,SAR:3.75,AED:3.67,QAR:3.64,TND:3.1,LYD:5.5,MAD:9.9,TRY:34,MRU:40,EGP:48,DZD:132,SDG:600,IQD:1310,YER:1550,SYP:13000,LBP:89500};
+function rateQ(c,base){ const inv=(PER_USD[c]||1)>(PER_USD[base]||1); return {inv,txt:inv?`١ ${curName(base)} = كم ${curName(c)}؟`:`١ ${curName(c)} = كم ${curName(base)}؟`}; }
+const rateIn=(c,base,v)=>rateQ(c,base).inv?(v>0?1/v:NaN):v;
+const rateOut=(c,base,r)=>rateQ(c,base).inv?(r>0?1/r:NaN):r;
 const REG={SA:'SAR',YE:'YER',EG:'EGP',AE:'AED',KW:'KWD',QA:'QAR',OM:'OMR',BH:'BHD',JO:'JOD',IQ:'IQD',SD:'SDG',SY:'SYP',LB:'LBP',LY:'LYD',TN:'TND',DZ:'DZD',MA:'MAD',MR:'MRU',TR:'TRY'};
 function guessCur(){ try{ for(const l of (navigator.languages||[navigator.language])){ const m=String(l).match(/[-_]([A-Z]{2})\b/i); if(m&&REG[m[1].toUpperCase()]) return REG[m[1].toUpperCase()]; } }catch(e){} return 'USD'; }
 const DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
@@ -112,8 +117,8 @@ function oRender(){
 }
 function oRates(){
   const base=$('oBase').value, used=[...new Set(oDebts.map(d=>d.cur||base).filter(c=>c!==base))];
-  $('oRates').innerHTML=used.length?'<div class="small muted">أسعار الصرف اليوم</div>'+used.map(c=>`<label>١ ${curName(c)} = كم ${curName(base)}؟<input data-r="${c}" inputmode="decimal" value="${oRateVals[c]?fmt(oRateVals[c]):''}"></label>`).join(''):'';
-  $('oRates').querySelectorAll('[data-r]').forEach(el=>el.addEventListener('input',()=>{oRateVals[el.dataset.r]=toNum(el.value);}));
+  $('oRates').innerHTML=used.length?'<div class="small muted">أسعار الصرف اليوم</div>'+used.map(c=>`<label>${rateQ(c,base).txt}<input data-r="${c}" inputmode="decimal" value="${oRateVals[c]>0?fmt(rateOut(c,base,oRateVals[c])):''}"></label>`).join(''):'';
+  $('oRates').querySelectorAll('[data-r]').forEach(el=>el.addEventListener('input',()=>{oRateVals[el.dataset.r]=rateIn(el.dataset.r,$('oBase').value,toNum(el.value));}));
 }
 function openSetup(isExtra){
   $('app').hidden=true; $('lock').hidden=true; $('setup').hidden=false; window.scrollTo(0,0);
@@ -327,9 +332,9 @@ function renderSim(T){
 let draft=null;
 function openCreds(){ draft=JSON.parse(JSON.stringify({rates:S.rates,creditors:S.creditors})); renderCreds(); }
 function renderCreds(){
-  const base=S.profile.base; $('ratesHint').textContent='عملة الحساب: '+curName(base)+'. اكتب كم تساوي كل عملة بها اليوم.';
+  const base=S.profile.base; $('ratesHint').textContent='عملة الحساب: '+curName(base)+'. اكتب سعر الصرف اليوم كما تسمعه في السوق.';
   const curs=Object.keys(draft.rates);
-  $('curList').innerHTML=curs.length?curs.map(c=>`<div class="row"><label style="flex:1">١ ${curName(c)} = كم ${curName(base)}؟<input data-rate="${c}" inputmode="decimal" value="${fmt(draft.rates[c])}"></label><button class="btn sm ghost" type="button" data-rmcur="${c}">حذف</button></div>`).join(''):'<div class="small muted">لا توجد عملات أخرى.</div>';
+  $('curList').innerHTML=curs.length?curs.map(c=>`<div class="row"><label style="flex:1">${rateQ(c,base).txt}<input data-rate="${c}" inputmode="decimal" value="${draft.rates[c]>0?fmt(rateOut(c,base,draft.rates[c])):''}"></label><button class="btn sm ghost" type="button" data-rmcur="${c}">حذف</button></div>`).join(''):'<div class="small muted">لا توجد عملات أخرى.</div>';
   fillCurSelect($('addCurSel'),null,[base,...curs]);
   const allCur=[base,...curs];
   $('credList').innerHTML=draft.creditors.map((c,ci)=>`<div class="cred">
@@ -337,7 +342,7 @@ function renderCreds(){
     ${c.debts.map((d,di)=>`<div class="debtrow"><label class="lbl">وصف<input data-dl="${ci}:${di}" value="${esc(d.label||'')}"></label><label>المبلغ<input data-da="${ci}:${di}" inputmode="decimal" value="${fmt(d.amount)}"></label><label>العملة<select data-dc="${ci}:${di}">${allCur.map(x=>`<option value="${x}" ${x===d.cur?'selected':''}>${curName(x)}</option>`).join('')}</select></label><button class="btn sm ghost" type="button" data-drm="${ci}:${di}">حذف</button></div>`).join('')}
     <div class="row"><button class="btn sm" type="button" data-dadd="${ci}">+ مبلغ</button>${draft.creditors.length>1?`<button class="btn sm danger" type="button" data-crm="${ci}">حذف الدائن</button>`:''}</div></div>`).join('');
   const box=$('s-creds'), q=(sel,fn,ev='input')=>box.querySelectorAll(sel).forEach(el=>el.addEventListener(ev,()=>fn(el))), ij=s=>s.split(':').map(Number);
-  q('[data-rate]',el=>{draft.rates[el.dataset.rate]=toNum(el.value);});
+  q('[data-rate]',el=>{draft.rates[el.dataset.rate]=rateIn(el.dataset.rate,base,toNum(el.value));});
   q('[data-cn]',el=>{draft.creditors[+el.dataset.cn].name=el.value;});
   q('[data-cpre]',el=>{draft.creditors[+el.dataset.cpre].pre=toNum(el.value)||0;});
   q('[data-dl]',el=>{const[a,b]=ij(el.dataset.dl);draft.creditors[a].debts[b].label=el.value;});
