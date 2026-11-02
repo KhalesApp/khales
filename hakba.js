@@ -263,7 +263,7 @@ function renderDetail(){
   root().innerHTML=`<div class="row"><button class="btn sm ghost" type="button" id="hkBack">→ هكباتي</button></div>
   <section class="hero blue-hero"><div class="row" style="justify-content:space-between"><span class="hero-lbl">${own?'أنت المسؤول':'المسؤول: '+esc(h.ownerName)}</span><span class="tag light">${status}</span></div>
     <h2 class="today-title">${esc(h.name)}</h2>
-    <div class="hk-stats num"><div><b>${fmt(h.amount)}</b><span>${esc(h.cur)} ${UNIT[h.unit][2]}</span></div><div><b>${fmt(h.amount*h.k*(P?P.n:Math.max(approved.length,2)))}</b><span>يستلمها صاحب الدور</span></div><div><b>${unitN(h.k,h.unit)}</b><span>كل دورة</span></div></div>
+    <div class="hk-stats num"><div><b>${fmt(h.amount)}</b><span>${esc(h.cur)} ${UNIT[h.unit][2]}</span></div><div><b>${fmt(h.amount*h.k*(P?P.n:h.slots))}</b><span>يستلمها صاحب الدور</span></div><div><b>${unitN(h.k,h.unit)}</b><span>كل دورة</span></div></div>
     ${P&&!P.ended?(()=>{const c=P.cycles[P.curCycle];return `<div class="hk-next"><span>الاستلام القادم</span><b>${esc(nameOf(L,c.uid))}${c.uid===DB.uid?' (أنت)':''} · ${dLong(c.date)}</b></div>`;})():''}
   </section>
   ${al.length?`<div class="hk-alerts">${al.map(a=>`<button class="hk-alert ${a.k}" type="button" ${a.go?`data-seg="${a.go}"`:''}>${a.t}</button>`).join('')}</div>`:''}
