@@ -52,6 +52,12 @@
 
     <div class="row"><button class="btn primary lg" id="oStart" type="button">ابدأ</button><button class="btn ghost" id="oCancel" type="button" hidden>إلغاء</button><span class="msg err" id="oMsg"></span></div>
 
+    <div class="card step hk-free" id="oHakbaBox">
+      <h3>جاي من رابط هكبة؟</h3>
+      <p class="small muted m0">قسم الهكبة مجاني ولا يحتاج دفتر ديون. ادخل مباشرة وانضم لهكبتك.</p>
+      <div class="row"><button class="btn bl-btn" id="oHakba" type="button">ادخل قسم الهكبة</button></div>
+    </div>
+
     <div class="card step" id="oImportBox">
       <h3>عندك نسخة احتياطية؟</h3>
       <p class="small muted m0">لو كنت تستخدم التطبيق من قبل، افتح ملف النسخة الاحتياطية ويرجع كل شيء.</p>
@@ -77,6 +83,11 @@
       <h3>احفظ بياناتك</h3>
       <p class="small muted m0">تقدر تحفظ نسخة احتياطية من بياناتك في أي وقت، حتى قبل التفعيل.</p>
       <div class="row"><button class="btn" id="lockExport" type="button">حفظ نسخة احتياطية</button></div>
+    </div>
+    <div class="card step hk-free">
+      <h3>قسم الهكبة مجاني</h3>
+      <p class="small muted m0">تقدر تستمر في استخدام الهكبة مع جماعتك بدون تفعيل.</p>
+      <div class="row"><button class="btn bl-btn" id="lockHakba" type="button">افتح الهكبة</button></div>
     </div>
   </div>
 </section>
@@ -203,6 +214,9 @@
     </section>
   </main>
 
+  <!-- الهكبة -->
+  <main class="view" id="v-hakba" data-sec="hakba" hidden><div id="hakbaRoot" class="hk-root"></div></main>
+
   <!-- النصائح -->
   <main class="view" id="v-tips" data-sec="tips" hidden>
     <section class="hero gold-hero">
@@ -245,7 +259,7 @@
       <div id="profConfirm"></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="meSettings">
       <div class="card-h"><h2>إعدادات الحساب الحالي</h2></div>
       <div class="grid3">
         <label>الاسم<input id="sName"></label>
@@ -282,6 +296,7 @@
 
   <nav class="tabbar" aria-label="الأقسام">
     <button data-go="debts" class="on" type="button"><svg viewBox="0 0 24 24" class="ic"><path d="M12 4a8 8 0 1 1-7.4 5"/><path d="M8.5 12.2l2.3 2.3 4.7-4.8"/></svg><span>ديوني</span></button>
+    <button data-go="hakba" type="button"><span class="bdg num" hidden></span><svg viewBox="0 0 24 24" class="ic"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M3 19c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5M11 19c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5"/></svg><span>الهكبة</span></button>
     <button data-go="tips" type="button"><svg viewBox="0 0 24 24" class="ic"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.8 10.6c.6.6.8 1.4.8 2.4h6c0-1 .2-1.8.8-2.4A6 6 0 0 0 12 3z"/></svg><span>النصائح</span></button>
     <button data-go="learn" type="button"><svg viewBox="0 0 24 24" class="ic"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 11.5V16c0 1.5 2.2 3 5 3s5-1.5 5-3v-4.5"/></svg><span>التعلّم</span></button>
     <button data-go="me" type="button"><svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg><span>حسابي</span></button>
@@ -301,6 +316,8 @@
 <input type="file" id="fileIn" accept="application/json,.json,text/plain" hidden>
 <script src="content.js"></script>
 <script src="learn.js"></script>
+<script src="firebase-config.js"></script>
 <script src="app.js"></script>
+<script src="hakba.js"></script>
 </body>
 </html>

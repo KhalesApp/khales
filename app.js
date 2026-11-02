@@ -123,7 +123,7 @@ function oRates(){
 function openSetup(isExtra){
   $('app').hidden=true; $('lock').hidden=true; $('setup').hidden=false; window.scrollTo(0,0);
   $('setupTitle').textContent=isExtra?'حساب جديد':'أهلًا بك في خالص';
-  $('setupSub').hidden=!!isExtra; $('setupFeat').hidden=!!isExtra; $('oImportBox').hidden=!!isExtra; $('oCancel').hidden=!isExtra;
+  $('setupSub').hidden=!!isExtra; $('setupFeat').hidden=!!isExtra; $('oImportBox').hidden=!!isExtra; $('oCancel').hidden=!(isExtra||appShown); $('oHakbaBox').hidden=!!isExtra;
   $('oName').value=''; $('oCred').value=''; $('oSplit').checked=false; $('oDivWrap').hidden=true; $('oMsg').textContent='';
   fillCurSelect($('oBase'),S?S.profile.base:guessCur());
   oDebts=[{label:'',amount:NaN,cur:$('oBase').value}]; oRateVals={}; oRender();
@@ -132,7 +132,8 @@ function bindSetup(){
   $('oBase').onchange=()=>{oDebts.forEach(d=>{if(!d.touched) d.cur=$('oBase').value;}); oRender();};
   $('oSplit').onchange=()=>{$('oDivWrap').hidden=!$('oSplit').checked;};
   $('oAddDebt').onclick=()=>{oDebts.push({label:'',amount:NaN,cur:$('oBase').value});oRender();};
-  $('oCancel').onclick=()=>{ $('setup').hidden=true; showApp(); };
+  $('oCancel').onclick=()=>{ $('setup').hidden=true; if(P) showApp(); else enterHakba(); };
+  $('oHakba').onclick=()=>enterHakba();
   $('oStart').onclick=()=>{
     const base=$('oBase').value, cname=$('oCred').value.trim(), m=$('oMsg');
     const debts=oDebts.filter(d=>d.amount>0).map(d=>({id:uid(),label:(d.label||'').trim(),amount:d.amount,cur:d.cur||base}));
@@ -186,11 +187,16 @@ function renderBackupHint(){
 
 /* ================= التنقل ================= */
 let cur='debts';
+const PAID=['debts','tips','learn'];
+let appShown=false;
 function go(sec){
-  cur=sec; ['debts','tips','learn','me'].forEach(s=>{ $('v-'+s).hidden=s!==sec; });
+  if(PAID.includes(sec)){ if(!P){ openSetup(false); return; } if(needLock()){ showLock(); return; } }
+  if(sec==='me'&&!P){ /* حسابي يعمل بدون دفتر ديون */ }
+  cur=sec; ['debts','hakba','tips','learn','me'].forEach(s=>{ $('v-'+s).hidden=s!==sec; });
   document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.go===sec));
-  const tc={debts:'#0A7A5A',tips:'#B87A12',learn:'#5A4FC8',me:'#0A7A5A'}[sec]; const m=document.querySelector('meta[name=theme-color]'); if(m) m.content=tc;
-  if(sec==='tips') renderTips(); if(sec==='learn') renderLearn(); if(sec==='me') renderMe();
+  const tc={debts:'#0A7A5A',hakba:'#1F6FB2',tips:'#B87A12',learn:'#5A4FC8',me:'#0A7A5A'}[sec]; const m=document.querySelector('meta[name=theme-color]'); if(m) m.content=tc;
+  if(sec==='tips') renderTips(); if(sec==='learn') renderLearn(); if(sec==='me') renderMe(); if(sec==='hakba'&&window.Hakba) window.Hakba.open();
+  if(sec==='debts') renderDebts();
   window.scrollTo({top:0});
 }
 
@@ -220,6 +226,7 @@ function resetForm(d){ editing=null; d=d||todayIso(); $('fDate').value=d; $('fIn
 function setCheck(date,key,val){ S.checks[date]=Object.assign({},S.checks[date]||{}); S.checks[date][key]=val; }
 
 function renderHeader(T){
+  if(!P){ $('whoAv').textContent='+'; $('whoAv').style.background='var(--em)'; $('whoName').textContent='ابدأ دفتر ديونك'; $('xp').textContent=fmt(0); $('lvl').textContent=fmt(1); $('xpbar').style.width='0%'; $('trialBanner').hidden=true; return; }
   T=T||totals(); $('whoAv').textContent=(P.name||'؟').trim().charAt(0); $('whoAv').style.background=P.color; $('whoName').textContent=P.name;
   const xp=xpOf(T), lvl=Math.floor(xp/100)+1; $('xp').textContent=fmt(xp); $('lvl').textContent=fmt(lvl); $('xpbar').style.width=(xp%100)+'%';
   // تجربة
@@ -409,10 +416,11 @@ function bindDebts(){
 }
 
 /* ================= النصائح ================= */
-const CATS={income:'زيادة الدخل',p:'خطة السداد',s:'المصاريف',c:'التعامل مع الدائن',m:'العقلية'};
+const CATS={income:'زيادة الدخل',p:'خطة السداد',s:'المصاريف',c:'التعامل مع الدائن',m:'العقلية',h:'الهكبة'};
 let ALL_TIPS=null, tipFilter='all', tipShown=12;
 function tipsList(){ if(ALL_TIPS) return ALL_TIPS; const A=window.ARTICLES||[], T=window.TIPS||[], cats=window.ARTICLE_CATS||''; const out=[];
   const n=Math.max(A.length,T.length); for(let i=0;i<n;i++){ if(T[i]) out.push({id:'t'+i,cat:'income',title:T[i][0],body:T[i][1]}); if(A[i]) out.push({id:'a'+i,cat:cats[i]||'p',title:A[i][0],body:A[i][1]}); }
+  (window.HAKBA_TIPS||[]).forEach((t,i)=>out.push({id:'h'+i,cat:'h',title:t[0],body:t[1]}));
   return ALL_TIPS=out; }
 function todayTip(){ const L=tipsList(); return L[dayIndex()%L.length]; }
 function renderTips(){
@@ -420,7 +428,7 @@ function renderTips(){
   $('todayTipCat').textContent=CATS[t.cat]; $('todayTipTitle').textContent=t.title; $('todayTipBody').textContent=t.body;
   $('todayFav').textContent=fav.has(t.id)?'محفوظة ✓':'حفظ'; $('todayFav').classList.toggle('on',fav.has(t.id));
   const ap=!!S.tips.applied[t.id]; $('todayApply').textContent=ap?'طبّقتها ✓':'طبّقتها +٥'; $('todayApply').disabled=ap;
-  const cats=[['all','الكل'],['income',CATS.income],['p',CATS.p],['s',CATS.s],['c',CATS.c],['m',CATS.m],['fav','المحفوظة']];
+  const cats=[['all','الكل'],['income',CATS.income],['p',CATS.p],['s',CATS.s],['c',CATS.c],['m',CATS.m],['h',CATS.h],['fav','المحفوظة']];
   $('tipChips').innerHTML=cats.map(([k,v])=>`<button type="button" role="tab" data-f="${k}" aria-selected="${k===tipFilter}">${v}${k==='fav'&&fav.size?' ('+fmt(fav.size)+')':''}</button>`).join('');
   $('tipChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{tipFilter=b.dataset.f;tipShown=12;renderTips();});
   const list=L.filter(x=>tipFilter==='all'||(tipFilter==='fav'?fav.has(x.id):x.cat===tipFilter));
@@ -428,7 +436,7 @@ function renderTips(){
   if(!list.length){ $('tipGrid').innerHTML=`<div class="empty" style="grid-column:1/-1">${tipFilter==='fav'?'لم تحفظ أي نصيحة بعد. اقلب أي بطاقة واضغط «حفظ».':'لا توجد نصائح هنا.'}</div>`; $('tipMore').hidden=true; return; }
   $('tipGrid').innerHTML=list.slice(0,tipShown).map(x=>{ const i=L.indexOf(x)+1, f=fav.has(x.id), a=!!S.tips.applied[x.id];
     return `<div class="flip" role="button" tabindex="0" data-id="${x.id}" aria-label="${esc(x.title)}"><div class="flip-in">
-      <div class="face front">${f?'<span class="fav-mark">★</span>':''}<span class="tag ${x.cat==='income'?'gold':x.cat==='m'?'vi':x.cat==='c'?'bad':'ok'}">${CATS[x.cat]}</span><h3>${esc(x.title)}</h3><span class="hint">${a?'✓ طبّقتها · ':''}اضغط للقراءة</span><span class="f-num num">${fmt(i)}</span></div>
+      <div class="face front">${f?'<span class="fav-mark">★</span>':''}<span class="tag ${x.cat==='income'?'gold':x.cat==='m'?'vi':x.cat==='c'?'bad':x.cat==='h'?'bl':'ok'}">${CATS[x.cat]}</span><h3>${esc(x.title)}</h3><span class="hint">${a?'✓ طبّقتها · ':''}اضغط للقراءة</span><span class="f-num num">${fmt(i)}</span></div>
       <div class="face back"><b>${esc(x.title)}</b><p>${esc(x.body)}</p><div class="row"><button class="mini ${f?'on':''}" type="button" data-act="fav">${f?'محفوظة':'حفظ'}</button><button class="mini ${a?'on':''}" type="button" data-act="apply" ${a?'disabled':''}>${a?'طبّقتها ✓':'طبّقتها +٥'}</button><button class="mini" type="button" data-act="copy">نسخ</button></div></div>
     </div></div>`; }).join('');
   $('tipMore').hidden=list.length<=tipShown;
@@ -520,7 +528,9 @@ function renderMe(){
       if(!ST.profiles.length){ ST.activeId=null; P=S=null; save(); openSetup(false); return; }
       if(ST.activeId===p.id) setActive(ST.profiles[0].id); save(); boot(); go('me'); toast('تم حذف الحساب'); };
   });
-  $('sName').value=P.name||''; $('sDiv').value=fmt(S.profile.div||1); $('sMin').value=S.profile.min?fmt(S.profile.min):''; $('sDigits').value=ST.settings.digits;
+  $('meSettings').hidden=!P;
+  if(P){ $('sName').value=P.name||''; $('sDiv').value=fmt(S.profile.div||1); $('sMin').value=S.profile.min?fmt(S.profile.min):''; }
+  $('sDigits').value=ST.settings.digits;
   // التفعيل
   const tl=trialLeft();
   $('actBox').innerHTML=isActive()?`<div class="row"><span class="tag ok">مفعّل ✓</span><span class="small muted num" dir="ltr">${esc(prettyCode(ST.act.code))}</span></div>`
@@ -535,7 +545,7 @@ function tryActivate(raw,msgEl){
   msgEl.className='msg err'; msgEl.textContent='الرمز غير صحيح. تأكد من كتابته كما وصلك.'; return false;
 }
 function bindMe(){
-  $('addProfile').onclick=()=>openSetup(true);
+  $('addProfile').onclick=()=>openSetup(!!P);
   $('saveSettings').onclick=()=>{ P.name=$('sName').value.trim()||P.name; S.profile.div=Math.max(1,toNum($('sDiv').value)||1); S.profile.min=Math.max(0,toNum($('sMin').value)||0); save(); renderAll(); $('setMsg').textContent='تم الحفظ.'; setTimeout(()=>$('setMsg').textContent='',3000); };
   $('sDigits').onchange=()=>{ ST.settings.digits=$('sDigits').value; LOC=ST.settings.digits==='en'?'ar-EG-u-nu-latn':'ar-EG'; save(); simScale=null; boot(); go('me'); };
   $('exportBtn').onclick=()=>doExport($('bkMsg'));
@@ -550,10 +560,11 @@ function bindMe(){
   $('resetBtn').onclick=()=>{
     $('resetConfirm').innerHTML=`<div class="confirm">يحذف كل الحسابات من هذا الجوال ولا يمكن التراجع. <button class="btn sm danger" type="button" id="yesReset">نعم، امسح</button><button class="btn sm" type="button" id="noReset">تراجع</button></div>`;
     $('noReset').onclick=()=>$('resetConfirm').innerHTML='';
-    $('yesReset').onclick=()=>{ const keep={firstOpen:ST.firstOpen,act:ST.act}; ST=Object.assign(newStore(),keep); save(); location.reload(); };
+    $('yesReset').onclick=()=>{ const keep={firstOpen:ST.firstOpen,act:ST.act,hakba:ST.hakba}; ST=Object.assign(newStore(),keep); save(); location.reload(); };
   };
   // تبديل سريع من الشريط العلوي
   $('whoChip').onclick=()=>{
+    if(!P){ openSetup(false); return; }
     openSheet('الحسابات',`<div class="profiles">${ST.profiles.map(p=>`<button class="prof ${p.id===ST.activeId?'on':''}" type="button" data-sw="${p.id}" style="font:inherit;color:inherit;cursor:pointer;text-align:right"><span class="av" style="background:${p.color}">${esc((p.name||'؟').trim().charAt(0))}</span><span class="p-txt"><b>${esc(p.name)}</b><span class="num">${profSummary(p)}</span></span>${p.id===ST.activeId?'<span class="tag ok">الحالي</span>':''}</button>`).join('')}</div><div class="row"><button class="btn primary sm" type="button" id="swNew">+ حساب جديد</button></div>`);
     $('sheetBody').querySelectorAll('[data-sw]').forEach(b=>b.onclick=()=>switchProfile(b.dataset.sw));
     $('swNew').onclick=()=>{ closeSheet(); openSetup(true); };
@@ -580,21 +591,28 @@ function bindAll(){
   $('iosClose').onclick=()=>{ST.ui.iosDismissed=true;save();$('iosHint').hidden=true;};
   $('trialAct').onclick=()=>go('me');
 }
-function renderAll(){ renderDebts(); if(cur==='tips') renderTips(); if(cur==='learn') renderLearn(); if(cur==='me') renderMe(); }
+function renderAll(){ if(P) renderDebts(); else renderHeader(); if(cur==='hakba'&&window.Hakba) window.Hakba.render(); if(!P) return; if(cur==='tips') renderTips(); if(cur==='learn') renderLearn(); if(cur==='me') renderMe(); }
 function showApp(){
   if(needLock()){ showLock(); return; }
-  $('app').hidden=false; bindAll(); renderAll(); iosCheck();
+  $('setup').hidden=true; $('lock').hidden=true; $('app').hidden=false; appShown=true; bindAll(); if(PAID.includes(cur)) go(cur); else renderAll(); iosCheck();
+  if(window.Hakba) window.Hakba.warm();
 }
+// الدخول لقسم الهكبة (مجاني) بدون دفتر ديون أو بعد انتهاء التجربة
+function enterHakba(){ $('setup').hidden=true; $('lock').hidden=true; $('app').hidden=false; appShown=true; bindAll(); renderHeader(); go('hakba'); iosCheck(); }
 function showLock(){
-  $('app').hidden=true; $('setup').hidden=true; $('lock').hidden=false;
+  window.scrollTo(0,0); $('app').hidden=true; $('setup').hidden=true; $('lock').hidden=false;
   $('buyLink').hidden=!CONFIG.BUY_URL; if(CONFIG.BUY_URL) $('buyLink').href=CONFIG.BUY_URL; $('buyHint').textContent=CONFIG.BUY_URL?'':CONFIG.BUY_HINT;
   $('lockSub').textContent=CONFIG.TRIAL_DAYS>0?'انتهت فترة التجربة المجانية. أدخل رمز التفعيل لتكمل، وبياناتك كلها محفوظة كما هي.':'أدخل رمز التفعيل الذي وصلك بعد الشراء.';
 }
 function boot(){
   LOC=ST.settings.digits==='en'?'ar-EG-u-nu-latn':'ar-EG';
-  if(!ST.profiles.length){ if(needLock()) showLock(); else openSetup(false); return; }
+  const joining=/join=/.test(location.hash), hk=((ST.hakba||{}).list||[]).length>0;
+  if(!ST.profiles.length){ P=S=null;
+    if(joining||hk){ enterHakba(); if(joining&&window.Hakba) window.Hakba.checkHash(); return; }
+    if(needLock()) showLock(); else openSetup(false); return; }
   setActive(ST.activeId); simScale=null; simTouched=false; editing=null;
   buildPayInputs(); resetForm(); $('setup').hidden=true;
+  if(joining){ enterHakba(); if(window.Hakba) window.Hakba.checkHash(); return; }
   if(needLock()){ showLock(); return; }
   showApp();
   if(navigator.storage&&navigator.storage.persist){ navigator.storage.persist().then(p=>{ $('storeInfo').textContent=p?'التخزين في هذا الجوال محمي من المسح التلقائي.':'المتصفح قد يمسح البيانات إذا امتلأت الذاكرة، لذلك احفظ نسخة احتياطية بانتظام.'; }).catch(()=>{}); }
@@ -602,16 +620,23 @@ function boot(){
 $('codeBtn').onclick=()=>tryActivate($('codeIn').value,$('codeMsg'));
 $('codeIn').addEventListener('keydown',e=>{ if(e.key==='Enter') $('codeBtn').click(); });
 $('lockExport').onclick=()=>doExport(null);
+$('lockHakba').onclick=()=>enterHakba();
 bindSetup();
 
 ST=normStore(loadStore()); if(!loadStore()) save();
-boot();
+// أدوات مشتركة لقسم الهكبة
+window.__khalesCore={fmt,toNum,loc:()=>LOC,store:()=>ST,save,go,sheet:openSheet,closeSheet,toast,copy:copyText,
+  curOptions:sel=>Object.keys(CUR).map(c=>`<option value="${c}" ${c===sel?'selected':''}>${curName(c)}</option>`).join(''),
+  baseCur:()=>S?S.profile.base:guessCur()};
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else setTimeout(boot,0); // بعد تحميل hakba.js
 
 if('serviceWorker' in navigator){
   let waitingSW=null, reloading=false;
   const offer=w=>{ waitingSW=w; const b=$('updBanner'); if(b) b.hidden=false; };
   $('updBtn').onclick=()=>{ $('updBtn').disabled=true; $('updBtn').textContent='جارٍ التحديث…'; if(waitingSW) waitingSW.postMessage('skip'); else location.reload(); };
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(reloading) return; reloading=true; location.reload(); });
+
+  // يعيد التحميل فقط عندما يضغط المستخدم «حدّث الآن» (وليس عند أول تثبيت، حتى لا يضيع رابط الدعوة)
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(reloading||!waitingSW) return; reloading=true; location.reload(); });
   window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').then(reg=>{
     if(reg.waiting&&navigator.serviceWorker.controller) offer(reg.waiting);
     reg.addEventListener('updatefound',()=>{ const nw=reg.installing; if(!nw) return; nw.addEventListener('statechange',()=>{ if(nw.state==='installed'&&navigator.serviceWorker.controller) offer(nw); }); });
@@ -619,7 +644,7 @@ if('serviceWorker' in navigator){
     document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&navigator.onLine) reg.update().catch(()=>{}); });
   }).catch(()=>{}); });
 }
-document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&S&&!$('app').hidden){ if(needLock()) showLock(); else renderAll(); } });
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&S&&!$('app').hidden){ if(needLock()&&PAID.includes(cur)) showLock(); else renderAll(); } });
 // للاختبار من أداة المالك فقط
 window.__khales={validCode,codeCheck,version:VERSION};
 })();

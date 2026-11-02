@@ -1,0 +1,87 @@
+rules_version = '2';
+// قواعد حماية قسم الهكبة في تطبيق «خالص»
+// تُلصق في: Firebase ← Firestore Database ← Rules ← Publish
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function hakba(hid) { return get(/databases/$(database)/documents/hakbas/$(hid)).data; }
+    function isOwner(hid) { return signedIn() && hakba(hid).ownerUid == request.auth.uid; }
+    function memberPath(hid) { return /databases/$(database)/documents/hakbas/$(hid)/members/$(request.auth.uid); }
+    function isApproved(hid) { return signedIn() && exists(memberPath(hid)) && get(memberPath(hid)).data.status == 'approved'; }
+    function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+
+    match /hakbas/{hid} {
+      // من عنده رمز الهكبة يقرأها (الرمز عشوائي ولا يمكن تخمينه)، ولا أحد يقدر يسرد كل الهكبات
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.order == null;
+      allow update: if signedIn() && (
+        // المسؤول: لا يغيّر المالك، والقرعة تُجرى مرة واحدة، وبعد القرعة تُقفل شروط الهكبة
+        (resource.data.ownerUid == request.auth.uid
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          && (resource.data.order == null
+              || changed().hasOnly(['delivered', 'name', 'ownerName', 'ownerPhone'])))
+        ||
+        // استعادة الإدارة برمز الاستعادة
+        (exists(/databases/$(database)/documents/hakbas/$(hid)/claims/$(request.auth.uid))
+          && request.resource.data.ownerUid == request.auth.uid
+          && changed().hasOnly(['ownerUid', 'ownerName']))
+      );
+      allow delete: if isOwner(hid) && resource.data.order == null;
+
+      match /members/{uid} {
+        allow read: if signedIn();
+        // طلب انضمام قبل القرعة، أو المسؤول يضيف نفسه
+        allow create: if signedIn() && request.auth.uid == uid && (
+          (request.resource.data.status == 'pending' && hakba(hid).order == null)
+          || (request.resource.data.status == 'approved' && hakba(hid).ownerUid == request.auth.uid));
+        // المسؤول يوافق أو يعدّل؛ العضو يعدّل اسمه ورقمه فقط
+        allow update: if isOwner(hid)
+          || (request.auth.uid == uid && request.resource.data.status == resource.data.status);
+        // الإزالة أو الخروج قبل القرعة فقط
+        allow delete: if (isOwner(hid) || request.auth.uid == uid) && hakba(hid).order == null;
+      }
+
+      match /payments/{pid} {
+        allow read: if signedIn();
+        // العضو يبلغ عن دفعته (تنتظر التأكيد)، والمسؤول يسجّل دفعة مؤكدة مباشرة
+        allow create: if signedIn() && (
+          (request.resource.data.uid == request.auth.uid
+            && request.resource.data.status == 'pending'
+            && isApproved(hid))
+          || (isOwner(hid) && request.resource.data.status == 'confirmed'));
+        // المسؤول وحده يؤكد أو يرفض، ومرة واحدة فقط
+        allow update: if isOwner(hid)
+          && resource.data.status == 'pending'
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && changed().hasOnly(['status', 'reason', 'decidedAt']);
+        // العضو يلغي دفعته ما دامت لم تُؤكد
+        allow delete: if signedIn()
+          && resource.data.uid == request.auth.uid
+          && resource.data.status == 'pending';
+      }
+
+      match /events/{eid} {
+        // السجل يراه الجميع، ولا يمكن تعديله أو حذفه
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.by == request.auth.uid
+          && (isOwner(hid) || exists(memberPath(hid)));
+        allow update, delete: if false;
+      }
+
+      match /private/{doc} {
+        // رمز استعادة الإدارة: المسؤول فقط
+        allow read, write: if isOwner(hid);
+      }
+
+      match /claims/{uid} {
+        allow create: if signedIn() && request.auth.uid == uid
+          && request.resource.data.key == get(/databases/$(database)/documents/hakbas/$(hid)/private/key).data.key;
+        allow read, update, delete: if false;
+      }
+    }
+  }
+}

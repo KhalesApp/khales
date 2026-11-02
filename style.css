@@ -12,6 +12,7 @@
   --hero-em:linear-gradient(150deg,#0B8A65 0%,#075C44 100%);
   --hero-gold:linear-gradient(150deg,#C98A1C 0%,#94600A 100%);
   --hero-vi:linear-gradient(150deg,#6A5FD8 0%,#43399F 100%);
+  --bl:#1F6FB2; --bl-soft:#E1EDF8; --hero-bl:linear-gradient(150deg,#2A82C9 0%,#174F86 100%);
   --shadow:0 1px 2px rgba(15,31,26,.05),0 8px 24px -12px rgba(15,31,26,.18);
   --f:"Readex","Segoe UI","Noto Sans Arabic",Tahoma,Arial,sans-serif;
   --r:16px; --nav-h:64px;
@@ -27,6 +28,7 @@
   --hero-em:linear-gradient(150deg,#0F5B45 0%,#0A3A2D 100%);
   --hero-gold:linear-gradient(150deg,#7A5210 0%,#4B320A 100%);
   --hero-vi:linear-gradient(150deg,#4A3FA8 0%,#2B2470 100%);
+  --bl:#6DB3F2; --bl-soft:#13283D; --hero-bl:linear-gradient(150deg,#1B5585 0%,#0E2F4F 100%);
   --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);
   color-scheme:dark}}
 
@@ -327,3 +329,63 @@ tbody tr:hover{background:var(--em-soft)}
   .xpbar{display:none}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+
+/* ===== الهكبة ===== */
+.blue-hero{background:var(--hero-bl)}
+.hk-root{display:grid;gap:14px;grid-column:1/-1;min-width:0}
+.btn.bl,.btn.primary.bl,.bl-btn{background:var(--bl);border-color:var(--bl);color:#fff}
+.btn.on-hero.solid-bl{background:#fff;color:#174F86;border-color:#fff}
+.btn.wa{background:#25D366;border-color:#25D366;color:#073B1C;font-weight:650}
+.tag.bl{background:var(--bl-soft);color:var(--bl)}
+.tabbar button{position:relative}
+.tabbar button[data-go=hakba].on{color:var(--bl);background:var(--bl-soft)}
+.bdg{position:absolute;top:2px;left:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--coral);color:#fff;font-size:.68rem;font-weight:700;display:grid;place-items:center;line-height:1}
+.hk-free{border-color:color-mix(in srgb,var(--bl) 40%,var(--line));background:var(--bl-soft)}
+.hk-list{display:grid;gap:10px}
+.hk-card{display:grid;gap:6px;text-align:right;font:inherit;color:inherit;cursor:pointer;box-shadow:none;width:100%}
+button.hk-card:hover{border-color:var(--bl)}
+.hk-alert{display:block;width:100%;text-align:right;font:inherit;font-size:.86rem;border:none;border-radius:10px;padding:8px 12px;background:var(--gold-soft);color:var(--ink);cursor:pointer}
+.hk-alert.bad{background:var(--coral-soft)} .hk-alert.ok{background:var(--em-soft)}
+.hk-alerts{display:grid;gap:6px}
+.hk-tip{background:var(--surface)}
+.hk-sum{background:var(--bl-soft);border-radius:12px;padding:10px 12px;font-size:.9rem;line-height:1.8}
+.code-box{background:var(--surface2);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;word-break:break-all;font-weight:600;letter-spacing:.04em}
+.warn-card{background:var(--gold-soft);border-color:color-mix(in srgb,var(--gold) 35%,transparent);box-shadow:none}
+.hk-inv{box-shadow:none;background:var(--surface2)}
+.hk-join-card{display:grid;gap:4px;background:var(--bl-soft);border-radius:14px;padding:12px 14px}
+.hk-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hk-stats div{display:grid;background:rgba(255,255,255,.12);border-radius:12px;padding:8px 10px;min-width:0}
+.hk-stats b{font-size:1.1rem;font-weight:700}
+.hk-stats span{font-size:.74rem;opacity:.85}
+.hk-next{display:grid;background:rgba(255,255,255,.14);border-radius:12px;padding:8px 12px}
+.hk-next span{font-size:.78rem;opacity:.85}
+.hk-wait{display:grid;gap:4px;background:var(--bl-soft);border-radius:12px;padding:12px}
+.hk-members{display:flex;flex-wrap:wrap;gap:6px}
+.hk-chip{background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:.86rem}
+.hk-me{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hk-me div{display:grid;border:1px solid var(--line);border-radius:12px;padding:8px 10px;min-width:0}
+.bad-t{color:var(--coral)}
+.hk-grid{display:grid;gap:6px;margin-top:8px}
+.hk-row{display:grid;grid-template-columns:minmax(80px,30%) 1fr;gap:8px;align-items:center}
+.hk-nm{font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hk-cells{display:flex;flex-wrap:wrap;gap:3px}
+.hk-cells i{width:14px;height:14px;border-radius:4px;background:var(--line)}
+.hk-cells i.ok{background:var(--em)} .hk-cells i.pend{background:var(--gold)} .hk-cells i.late{background:var(--coral)}
+.hk-order{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.hk-order li{display:grid;grid-template-columns:28px 1fr auto auto auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:.9rem}
+.hk-order li.cur{border-color:var(--bl);background:var(--bl-soft)}
+.hk-order li.done{opacity:.7}
+.hk-n{width:26px;height:26px;border-radius:50%;background:var(--bl-soft);color:var(--bl);display:grid;place-items:center;font-weight:700;font-size:.82rem}
+.hk-on{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hk-pays{display:grid;gap:8px}
+.hk-pay{display:grid;gap:4px;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.hk-pay.pending{border-color:color-mix(in srgb,var(--gold) 55%,transparent);background:color-mix(in srgb,var(--gold-soft) 60%,transparent)}
+.hk-pay.rejected{opacity:.8}
+.hk-pay-t{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.hk-log{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.hk-log li{display:grid;gap:2px;border-inline-start:3px solid var(--line);padding:4px 10px;font-size:.9rem}
+.hk-log li.confirm,.hk-log li.accept,.hk-log li.deliver{border-color:var(--em)} .hk-log li.reject,.hk-log li.remove{border-color:var(--coral)} .hk-log li.pay{border-color:var(--gold)} .hk-log li.draw,.hk-log li.create{border-color:var(--bl)}
+.hk-draw{display:grid;gap:8px}
+.hk-draw-row{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;transition:background .3s}
+.hk-draw-row.done{background:var(--bl-soft);border-color:var(--bl)}
+@media (max-width:420px){.hk-me,.hk-stats{grid-template-columns:1fr 1fr}.hk-order li{grid-template-columns:26px 1fr auto;}.hk-order li span:nth-child(4),.hk-order li span:nth-child(5){grid-column:2/-1}.tabbar button{font-size:.68rem}}
