@@ -607,7 +607,18 @@ bindSetup();
 ST=normStore(loadStore()); if(!loadStore()) save();
 boot();
 
-if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
+if('serviceWorker' in navigator){
+  let waitingSW=null, reloading=false;
+  const offer=w=>{ waitingSW=w; const b=$('updBanner'); if(b) b.hidden=false; };
+  $('updBtn').onclick=()=>{ $('updBtn').disabled=true; $('updBtn').textContent='جارٍ التحديث…'; if(waitingSW) waitingSW.postMessage('skip'); else location.reload(); };
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(reloading) return; reloading=true; location.reload(); });
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').then(reg=>{
+    if(reg.waiting&&navigator.serviceWorker.controller) offer(reg.waiting);
+    reg.addEventListener('updatefound',()=>{ const nw=reg.installing; if(!nw) return; nw.addEventListener('statechange',()=>{ if(nw.state==='installed'&&navigator.serviceWorker.controller) offer(nw); }); });
+    // يتحقق من وجود تحديث كلما رجع المستخدم للتطبيق
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&navigator.onLine) reg.update().catch(()=>{}); });
+  }).catch(()=>{}); });
+}
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&S&&!$('app').hidden){ if(needLock()) showLock(); else renderAll(); } });
 // للاختبار من أداة المالك فقط
 window.__khales={validCode,codeCheck,version:VERSION};

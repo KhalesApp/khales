@@ -107,6 +107,7 @@ input[type=range]{padding:0;accent-color:var(--em);background:transparent;border
 .banners,.view{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .banners{display:grid;gap:8px;padding-top:12px}
 .banners:not(:has(.banner:not([hidden]))){padding-top:0}
+.banner.upd{background:var(--em-soft)}
 .banner{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between;background:var(--gold-soft);border-radius:14px;padding:10px 14px}
 .view{display:grid;gap:14px;padding-block:14px 28px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
 .view>*{grid-column:1/-1;min-width:0}
