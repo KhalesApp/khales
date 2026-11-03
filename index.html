@@ -98,6 +98,7 @@
     <div class="appbar-in">
       <div class="logo"><svg class="mark sm" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" class="mk-track"/><path d="M24 7a17 17 0 1 1-13 6" class="mk-arc"/><path d="M17 24.5l5 5 9-10" class="mk-check"/></svg><b>خالص</b></div>
       <button class="who-chip" id="whoChip" type="button" aria-label="تبديل الحساب"><span class="av" id="whoAv"></span><span id="whoName"></span><svg viewBox="0 0 24 24" class="ic xs"><path d="M6 9l6 6 6-6"/></svg></button>
+      <button class="icon-btn me-btn" id="meBtn" type="button" aria-label="حسابي والإعدادات"><svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
       <div class="xp" title="نقاطك"><span class="lvl" id="lvl">١</span><div class="xp-txt"><b id="xp" class="num">٠</b><div class="xpbar"><i id="xpbar"></i></div></div></div>
     </div>
   </header>
@@ -106,6 +107,7 @@
     <div class="banner upd" id="updBanner" hidden><span class="small"><b>نسخة جديدة من خالص جاهزة.</b> بياناتك تبقى كما هي.</span><button class="btn sm primary" id="updBtn" type="button">حدّث الآن</button></div>
     <div class="banner" id="trialBanner" hidden><span class="small" id="trialText"></span><button class="btn sm" id="trialAct" type="button">فعّل الآن</button></div>
     <div class="banner" id="iosHint" hidden><span class="small">لتثبيت خالص على الآيفون: زر المشاركة في سفاري ← «إضافة إلى الشاشة الرئيسية».</span><button class="btn sm ghost" id="iosClose" type="button">حسنًا</button></div>
+    <div class="banner fb-banner" id="fbHint" hidden><span class="small">كيف تجربتك مع خالص حتى الآن؟ رأيك يحدد التحديث القادم.</span><div class="row"><button class="btn sm primary" id="fbHintGo" type="button">قيّم التطبيق</button><button class="btn sm ghost" id="fbHintNo" type="button">لاحقًا</button></div></div>
     <div class="banner" id="backupHint" hidden><span class="small" id="backupHintText"></span><div class="row"><button class="btn sm primary" id="backupNow" type="button">احفظ نسخة</button><button class="btn sm ghost" id="backupLater" type="button">لاحقًا</button></div></div>
   </div>
 
@@ -135,6 +137,7 @@
         <label>دخل اليوم<input id="fIncome" inputmode="decimal" placeholder="٣٠٠٠٠"></label>
         <div id="payInputs" class="contents"></div>
       </div>
+      <label id="sideWrap" hidden>دخل إضافي لك وحدك اليوم (لا يُقسم، يُضاف لنصيبك)<input id="fSide" inputmode="decimal" placeholder="مثال: ٥٠٠٠ من شغل جانبي"></label>
       <label>ملاحظة عن اليوم (اختياري)<input id="fNote" placeholder="مثال: يوم زحمة، أو مصروف مفاجئ"></label>
       <div class="live num">
         <div><span id="lShareLbl">نصيبك</span><b id="lShare">—</b></div>
@@ -217,6 +220,9 @@
   <!-- الهكبة -->
   <main class="view" id="v-hakba" data-sec="hakba" hidden><div id="hakbaRoot" class="hk-root"></div></main>
 
+  <!-- يومي -->
+  <main class="view" id="v-day" data-sec="day" hidden><div id="dayRoot" class="hk-root"></div></main>
+
   <!-- النصائح -->
   <main class="view" id="v-tips" data-sec="tips" hidden>
     <section class="hero gold-hero">
@@ -269,6 +275,15 @@
       <div class="row"><button class="btn primary sm" id="saveSettings" type="button">حفظ</button><span class="msg" id="setMsg"></span></div>
     </section>
 
+    <section class="card fb-card" id="fbCard">
+      <div class="card-h"><h2>رأيك يطوّر خالص</h2><span class="small muted">نقرأ كل رسالة</span></div>
+      <div><span class="small muted">قيّم تجربتك</span><div class="stars" id="fbStars" role="radiogroup" aria-label="التقييم"></div></div>
+      <div class="chips" id="fbKind" role="tablist"></div>
+      <label>اكتب رأيك أو اقتراحك أو المشكلة التي واجهتك<textarea id="fbText" maxlength="1500" placeholder="مثال: أتمنى إضافة تذكير يومي بموعد السداد"></textarea></label>
+      <label>رقم واتساب أو إيميل للرد عليك (اختياري)<input id="fbContact" dir="ltr" maxlength="80"></label>
+      <div class="row"><button class="btn primary" id="fbSend" type="button">إرسال</button><span class="msg" id="fbMsg"></span></div>
+    </section>
+
     <section class="card">
       <div class="card-h"><h2>التطبيق</h2></div>
       <label>شكل الأرقام<select id="sDigits" class="auto"><option value="ar">عربية ١٢٣</option><option value="en">إنجليزية 123</option></select></label>
@@ -297,9 +312,10 @@
   <nav class="tabbar" aria-label="الأقسام">
     <button data-go="debts" class="on" type="button"><svg viewBox="0 0 24 24" class="ic"><path d="M12 4a8 8 0 1 1-7.4 5"/><path d="M8.5 12.2l2.3 2.3 4.7-4.8"/></svg><span>ديوني</span></button>
     <button data-go="hakba" type="button"><span class="bdg num" hidden></span><svg viewBox="0 0 24 24" class="ic"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M3 19c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5M11 19c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5"/></svg><span>الهكبة</span></button>
+    <button data-go="day" type="button"><svg viewBox="0 0 24 24" class="ic"><path d="M7 5h10M8 5v2.5a1 1 0 0 1-.4.8C6.6 9 6 10.2 6 11.5V18a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-6.5c0-1.3-.6-2.5-1.6-3.2a1 1 0 0 1-.4-.8V5"/><circle cx="12" cy="15" r="2.2"/></svg><span>يومي</span></button>
     <button data-go="tips" type="button"><svg viewBox="0 0 24 24" class="ic"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.8 10.6c.6.6.8 1.4.8 2.4h6c0-1 .2-1.8.8-2.4A6 6 0 0 0 12 3z"/></svg><span>النصائح</span></button>
     <button data-go="learn" type="button"><svg viewBox="0 0 24 24" class="ic"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 11.5V16c0 1.5 2.2 3 5 3s5-1.5 5-3v-4.5"/></svg><span>التعلّم</span></button>
-    <button data-go="me" type="button"><svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg><span>حسابي</span></button>
+
   </nav>
 </div>
 
@@ -319,5 +335,6 @@
 <script src="firebase-config.js"></script>
 <script src="app.js"></script>
 <script src="hakba.js"></script>
+<script src="day.js"></script>
 </body>
 </html>

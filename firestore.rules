@@ -10,6 +10,17 @@ service cloud.firestore {
     function isApproved(hid) { return signedIn() && exists(memberPath(hid)) && get(memberPath(hid)).data.status == 'approved'; }
     function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
 
+    // آراء العملاء: الكل يرسل، ولا أحد يقرأ من التطبيق (صاحب المشروع يقرأها من لوحة Firebase)
+    match /feedback/{fid} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.text is string && request.resource.data.text.size() <= 1500
+        && request.resource.data.contact is string && request.resource.data.contact.size() <= 80
+        && (request.resource.data.rating == null || (request.resource.data.rating is int && request.resource.data.rating >= 1 && request.resource.data.rating <= 5))
+        && request.resource.data.keys().size() <= 12;
+      allow read, update, delete: if false;
+    }
+
     match /hakbas/{hid} {
       // من عنده رمز الهكبة يقرأها (الرمز عشوائي ولا يمكن تخمينه)، ولا أحد يقدر يسرد كل الهكبات
       allow get: if signedIn();

@@ -64,7 +64,7 @@ function normData(d){
   d.creditors.forEach(c=>{c.id=c.id||uid();c.pre=+c.pre||0;c.debts=Array.isArray(c.debts)?c.debts:[];c.debts.forEach(x=>{x.id=x.id||uid();x.amount=+x.amount||0;x.cur=x.cur||d.profile.base;});});
   d.entries=d.entries||{}; d.checks=d.checks||{};
   d.learn=Object.assign({done:{},xp:0,ans:{}},d.learn||{});
-  d.tips=Object.assign({fav:[],applied:{}},d.tips||{});
+  d.tips=Object.assign({fav:[],applied:{}},d.tips||{}); d.days=d.days||{};
   return d;
 }
 function normStore(s){
@@ -84,6 +84,8 @@ function needLock(){ return !isActive()&&trialLeft()<=0; }
 
 /* ================= الحسابات ================= */
 const rate=c=>c===S.profile.base?1:(+S.rates[c]||0);
+// نصيب اليوم = الدخل المشترك ÷ عدد الشركاء + الدخل الجانبي الخاص (لا يُقسم)
+const shareOf=(e,div)=>(+e.income||0)/div+(+e.side||0), totalIn=e=>(+e.income||0)+(+e.side||0);
 const paidOf=e=>Object.values(e.pay||{}).reduce((a,v)=>a+(+v||0),0);
 function totals(d){
   d=d||S; const rt=c=>c===d.profile.base?1:(+d.rates[c]||0);
@@ -91,11 +93,11 @@ function totals(d){
   const list=Object.keys(d.entries).sort().map(k=>({date:k,...d.entries[k],paid:paidOf(d.entries[k])}));
   const cred=d.creditors.map(c=>{ const debt=c.debts.reduce((a,x)=>a+x.amount*rt(x.cur),0); const paid=(+c.pre||0)+list.reduce((a,e)=>a+(+((e.pay||{})[c.id])||0),0); return {c,debt,paid,remaining:Math.max(0,debt-paid)}; });
   const debt=cred.reduce((a,x)=>a+x.debt,0), paidAll=cred.reduce((a,x)=>a+x.paid,0), remaining=cred.reduce((a,x)=>a+x.remaining,0);
-  const paid=list.reduce((a,e)=>a+e.paid,0), income=list.reduce((a,e)=>a+(+e.income||0),0), share=income/div, n=list.length;
+  const paid=list.reduce((a,e)=>a+e.paid,0), income=list.reduce((a,e)=>a+totalIn(e),0), share=list.reduce((a,e)=>a+shareOf(e,div),0), n=list.length;
   return {div,list,cred,debt,paidAll,remaining,paid,income,share,n,avgPaid:n?paid/n:0,avgShare:n?share/n:0};
 }
 function streak(list){ if(!list.length) return 0; const set=new Set(list.filter(e=>e.paid>0).map(e=>e.date)); let s=0,cur=dateObj(list[list.length-1].date); while(set.has(iso(cur))){s++;cur.setDate(cur.getDate()-1);} return s; }
-function xpOf(T){ let xp=0; T.list.forEach(e=>{xp+=10; if(T.avgPaid>0&&e.paid>=T.avgPaid) xp+=5;}); xp+=Math.floor(streak(T.list)/7)*20; Object.values(S.checks).forEach(c=>{xp+=Object.values(c||{}).filter(Boolean).length*5;}); xp+=S.learn.xp||0; xp+=Object.keys(S.tips.applied).length*5; return xp; }
+function xpOf(T){ let xp=0; T.list.forEach(e=>{xp+=10; if(T.avgPaid>0&&e.paid>=T.avgPaid) xp+=5;}); xp+=Math.floor(streak(T.list)/7)*20; Object.values(S.checks).forEach(c=>{xp+=Object.values(c||{}).filter(Boolean).length*5;}); xp+=S.learn.xp||0; xp+=Object.keys(S.tips.applied).length*5; if(window.__khalesDayXP) xp+=window.__khalesDayXP(); return xp; }
 
 /* ================= رسائل صغيرة ================= */
 let toastT;
@@ -187,15 +189,15 @@ function renderBackupHint(){
 
 /* ================= التنقل ================= */
 let cur='debts';
-const PAID=['debts','tips','learn'];
+const PAID=['debts','day','tips','learn'];
 let appShown=false;
 function go(sec){
   if(PAID.includes(sec)){ if(!P){ openSetup(false); return; } if(needLock()){ showLock(); return; } }
   if(sec==='me'&&!P){ /* حسابي يعمل بدون دفتر ديون */ }
-  cur=sec; ['debts','hakba','tips','learn','me'].forEach(s=>{ $('v-'+s).hidden=s!==sec; });
+  cur=sec; ['debts','hakba','day','tips','learn','me'].forEach(s=>{ $('v-'+s).hidden=s!==sec; });
   document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.go===sec));
-  const tc={debts:'#0A7A5A',hakba:'#1F6FB2',tips:'#B87A12',learn:'#5A4FC8',me:'#0A7A5A'}[sec]; const m=document.querySelector('meta[name=theme-color]'); if(m) m.content=tc;
-  if(sec==='tips') renderTips(); if(sec==='learn') renderLearn(); if(sec==='me') renderMe(); if(sec==='hakba'&&window.Hakba) window.Hakba.open();
+  const tc={debts:'#0A7A5A',hakba:'#1F6FB2',day:'#B83A6E',tips:'#B87A12',learn:'#5A4FC8',me:'#0A7A5A'}[sec]; const m=document.querySelector('meta[name=theme-color]'); if(m) m.content=tc;
+  if(sec==='tips') renderTips(); if(sec==='learn') renderLearn(); if(sec==='me') renderMe(); if(sec==='hakba'&&window.Hakba) window.Hakba.open(); if(sec==='day'&&window.Day) window.Day.open();
   if(sec==='debts') renderDebts();
   window.scrollTo({top:0});
 }
@@ -209,18 +211,20 @@ function buildPayInputs(){
   $('bulkCred').innerHTML=S.creditors.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
   $('bulkCredWrap').hidden=one;
 }
+const sideVal=()=>{ const v=toNum($('fSide').value); return isFinite(v)&&v>0?v:0; };
 function formPaid(){let s=0;S.creditors.forEach(c=>{const v=toNum($('fPay_'+c.id).value);if(isFinite(v))s+=v;});return s;}
 function updateLive(){
-  const div=Math.max(1,+S.profile.div||1), inc=toNum($('fIncome').value), pd=formPaid(), sh=inc/div;
-  $('lShareLbl').textContent=div>1?'نصيبك (÷'+fmt(div)+')':'دخلك';
+  const div=Math.max(1,+S.profile.div||1), inc=toNum($('fIncome').value), pd=formPaid(), side=sideVal(), sh=(isFinite(inc)?inc:(side?0:NaN))/div+side;
+  $('sideWrap').hidden=div<=1;
+  $('lShareLbl').textContent=div>1?'نصيبك (÷'+fmt(div)+(side?' + الجانبي':'')+')':'دخلك';
   $('lShare').textContent=isFinite(sh)?fmt(sh):'—';
   $('lRatio').textContent=(isFinite(sh)&&sh)?pctf(pd/sh*100):'—';
   $('lLeft').textContent=isFinite(sh)?fmt(sh-pd):'—';
 }
-function loadEntry(d){ const e=S.entries[d]; if(!e) return; editing=d; $('fDate').value=d; $('fIncome').value=fmt(e.income);
+function loadEntry(d){ const e=S.entries[d]; if(!e) return; editing=d; $('fDate').value=d; $('fIncome').value=fmt(e.income); $('fSide').value=+e.side?fmt(e.side):'';
   S.creditors.forEach(c=>{const v=(e.pay||{})[c.id]; $('fPay_'+c.id).value=v?fmt(v):'';});
   $('fNote').value=e.note||''; $('formTitle').textContent='تعديل '+dShort(d); $('delBtn').hidden=false; $('confirmBox').innerHTML=''; updateLive(); }
-function resetForm(d){ editing=null; d=d||todayIso(); $('fDate').value=d; $('fIncome').value=''; $('fNote').value='';
+function resetForm(d){ editing=null; d=d||todayIso(); $('fDate').value=d; $('fIncome').value=''; $('fSide').value=''; $('fNote').value='';
   S.creditors.forEach(c=>{$('fPay_'+c.id).value='';}); $('formTitle').textContent='سجّل يومك'; $('delBtn').hidden=true; $('confirmBox').innerHTML='';
   if(S.entries[d]) loadEntry(d); updateLive(); }
 function setCheck(date,key,val){ S.checks[date]=Object.assign({},S.checks[date]||{}); S.checks[date][key]=val; }
@@ -250,10 +254,10 @@ function renderDebts(){
   else { $('finishDate').textContent='سجّل أيامك ليظهر الموعد'; $('pacePill').innerHTML=''; }
 
   // KPIs
-  const best=T.list.reduce((a,e)=>(!a||+e.income>+a.income)?e:a,null), sp=T.div>1;
+  const best=T.list.reduce((a,e)=>(!a||totalIn(e)>totalIn(a))?e:a,null), sp=T.div>1;
   const k=[['أيام مسجلة',fmt(T.n)],['أيام سداد متتالية',fmt(streak(T.list))],['مجموع الدخل',fmt(T.income)],[sp?'نصيبك من الدخل':'صافي دخلك المسجل',fmt(T.share)],
     ['مجموع ما سددته',fmt(T.paid)],['نسبة السداد من '+(sp?'نصيبك':'دخلك'),pctf(T.share?T.paid/T.share*100:NaN)],[sp?'متوسط نصيبك اليومي':'متوسط دخلك اليومي',fmt(T.avgShare)],['متوسط سدادك اليومي',fmt(T.avgPaid)],
-    ['يبقى لك بعد السداد',fmt(T.share-T.paid)],['أعلى دخل',best?fmt(best.income)+' <span class="small muted">('+dShort(best.date)+')</span>':'—']];
+    ['يبقى لك بعد السداد',fmt(T.share-T.paid)],['أعلى دخل',best?fmt(totalIn(best))+' <span class="small muted">('+dShort(best.date)+')</span>':'—']];
   $('kpis').innerHTML=k.map(([a,b])=>`<div class="kpi"><span>${a}</span><b>${b}</b></div>`).join('');
   // per creditor
   $('credSumBox').hidden=T.cred.length<2;
@@ -277,12 +281,12 @@ function renderInsights(T){
   if(!T.n){ $('insights').innerHTML='<li><span class="tag warn">ابدأ</span><span>سجّل أيامك وتظهر هنا ملاحظات عن دخلك وسدادك.</span></li>'; return; }
   const ratio=T.share?T.paid/T.share*100:0;
   L.push([ratio>=30?'ok':'warn',ratio>=30?'ممتاز':'انتبه',`تسدد ${pctf(ratio)} من ${who}. ${ratio>=30?'هذه نسبة قوية، حافظ عليها.':'لو رفعتها تدريجيًا نحو ٣٠٪ تصبح خالصًا أسرع بكثير.'}`]);
-  const sum=Array(7).fill(0),cnt=Array(7).fill(0); T.list.forEach(e=>{const d=dateObj(e.date).getDay();sum[d]+=+e.income;cnt[d]++;});
+  const sum=Array(7).fill(0),cnt=Array(7).fill(0); T.list.forEach(e=>{const d=dateObj(e.date).getDay();sum[d]+=shareOf(e,T.div);cnt[d]++;});
   let bi=-1,wi=-1,bv=-1,wv=Infinity; sum.forEach((s,i)=>{if(!cnt[i])return;const a=s/cnt[i];if(a>bv){bv=a;bi=i}if(a<wv){wv=a;wi=i}});
-  if(T.n>=7&&bi>=0&&bi!==wi) L.push(['ok','أقوى يوم',`يوم ${DAYS[bi]} أعلى دخلًا عندك (${fmt(bv/T.div)} بالمتوسط)، و${DAYS[wi]} الأضعف (${fmt(wv/T.div)}). زِد السداد في ${DAYS[bi]}.`]);
-  const avgInc=T.income/T.n, low=T.list.filter(e=>+e.income<avgInc*0.75);
+  if(T.n>=7&&bi>=0&&bi!==wi) L.push(['ok','أقوى يوم',`يوم ${DAYS[bi]} أعلى دخلًا عندك (${fmt(bv)} بالمتوسط)، و${DAYS[wi]} الأضعف (${fmt(wv)}). زِد السداد في ${DAYS[bi]}.`]);
+  const avgInc=T.share/T.n, low=T.list.filter(e=>shareOf(e,T.div)<avgInc*0.75);
   if(low.length) L.push(['warn','أيام ضعيفة',`${fmt(low.length)} يوم كان دخلها أقل من ٧٥٪ من متوسطك. اكتب في الملاحظة سبب كل يوم ضعيف لتعرف ما يتكرر.`]);
-  const heavy=T.list.filter(e=>+e.income>0&&e.paid>(+e.income/T.div)*0.6);
+  const heavy=T.list.filter(e=>shareOf(e,T.div)>0&&e.paid>shareOf(e,T.div)*0.6);
   if(heavy.length) L.push(['bad','ضغط على نفسك',`${fmt(heavy.length)} يوم سددت فيه أكثر من ٦٠٪ من ${who}. جيد للدين، لكن انتبه ألا يتركك بلا مصروف.`]);
   if(S.profile.min>0){ const under=T.list.filter(e=>e.paid<S.profile.min).length; if(under) L.push(['warn','هدفك اليومي',`${fmt(under)} يوم سددت فيه أقل من هدفك (${fmt(S.profile.min)}).`]); }
   let fx=0; S.creditors.forEach(c=>c.debts.forEach(x=>{if(x.cur!==S.profile.base) fx+=x.amount*rate(x.cur);}));
@@ -298,16 +302,16 @@ function renderCharts(T){
   const data=T.list.slice(-31); $('legShare').textContent=T.div>1?'نصيبك من الدخل':'الدخل';
   if(!data.length){ $('chartDaily').innerHTML='<div class="empty">لا توجد أيام مسجلة بعد. سجّل أول يوم من الأعلى.</div>'; $('chartWeek').innerHTML='<div class="empty">يظهر بعد تسجيل عدة أيام.</div>'; return; }
   const W=900,H=280,L=64,R=12,Tp=14,B=46, iw=W-L-R, ih=H-Tp-B;
-  const max=niceMax(Math.max(...data.map(e=>Math.max(+e.income/T.div,e.paid))));
+  const max=niceMax(Math.max(...data.map(e=>Math.max(shareOf(e,T.div),e.paid))));
   const step=iw/Math.max(data.length,7), bw=Math.max(3,Math.min(18,step*0.36)); let g='';
   for(let i=0;i<=4;i++){const v=max*i/4,yy=Tp+ih-ih*i/4; g+=`<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${L-8}" y="${yy+4}" text-anchor="end" font-size="12" fill="var(--muted)">${fmt(v)}</text>`;}
-  data.forEach((e,i)=>{ const cx=W-R-step*(i+0.5), sh=(+e.income/T.div)/max*ih, pd=e.paid/max*ih;
-    g+=`<rect x="${cx}" y="${Tp+ih-sh}" width="${bw}" height="${sh}" rx="3" fill="var(--share)"><title>${dShort(e.date)}: ${fmt(e.income/T.div)}</title></rect>`;
+  data.forEach((e,i)=>{ const cx=W-R-step*(i+0.5), sh=shareOf(e,T.div)/max*ih, pd=e.paid/max*ih;
+    g+=`<rect x="${cx}" y="${Tp+ih-sh}" width="${bw}" height="${sh}" rx="3" fill="var(--share)"><title>${dShort(e.date)}: ${fmt(shareOf(e,T.div))}</title></rect>`;
     g+=`<rect x="${cx-bw}" y="${Tp+ih-pd}" width="${bw}" height="${pd}" rx="3" fill="var(--em)"><title>${dShort(e.date)}: سددت ${fmt(e.paid)}</title></rect>`;
     if(data.length<=16||i%2===0) g+=`<text x="${cx}" y="${H-B+18}" text-anchor="middle" font-size="12" fill="var(--muted)">${fmt(dateObj(e.date).getDate())}</text>`; });
   g+=`<text x="${W-R}" y="${H-6}" text-anchor="end" font-size="12" fill="var(--muted)">اليوم من الشهر · الأحدث على اليسار</text>`;
   $('chartDaily').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="الدخل والسداد اليومي" style="min-width:600px">${g}</svg>`;
-  const sum=Array(7).fill(0),cnt=Array(7).fill(0); T.list.forEach(e=>{const d=dateObj(e.date).getDay();sum[d]+=+e.income/T.div;cnt[d]++;});
+  const sum=Array(7).fill(0),cnt=Array(7).fill(0); T.list.forEach(e=>{const d=dateObj(e.date).getDay();sum[d]+=shareOf(e,T.div);cnt[d]++;});
   const avg=sum.map((s,i)=>cnt[i]?s/cnt[i]:0), top=Math.max(...avg), mx=niceMax(top);
   const W2=460,H2=250,L2=78,R2=62,rowH=(H2-20)/7; let h='';
   avg.forEach((v,i)=>{const yy=10+i*rowH, w=v/mx*(W2-L2-R2);
@@ -319,8 +323,8 @@ function renderCharts(T){
 function renderLog(T){
   if(!T.n){ $('logBox').innerHTML='<div class="empty">السجل فارغ. أول يوم تحفظه يظهر هنا.</div>'; return; }
   const multi=S.creditors.length>1, sp=T.div>1;
-  const rows=[...T.list].reverse().map(e=>{const sh=+e.income/T.div; const det=multi?S.creditors.filter(c=>+(e.pay||{})[c.id]).map(c=>esc(c.name)+': '+fmt(e.pay[c.id])).join('، '):'';
-    return `<tr data-d="${e.date}"><td>${dShort(e.date)}</td><td class="num">${fmt(e.income)}</td>${sp?`<td class="num">${fmt(sh)}</td>`:''}<td class="num"><b>${fmt(e.paid)}</b>${det?`<div class="small muted">${det}</div>`:''}</td><td class="num">${pctf(sh?e.paid/sh*100:NaN)}</td><td class="small muted">${esc(e.note||'')}</td></tr>`;}).join('');
+  const rows=[...T.list].reverse().map(e=>{const sh=shareOf(e,T.div); const det=multi?S.creditors.filter(c=>+(e.pay||{})[c.id]).map(c=>esc(c.name)+': '+fmt(e.pay[c.id])).join('، '):'';
+    return `<tr data-d="${e.date}"><td>${dShort(e.date)}</td><td class="num">${fmt(e.income)}${+e.side?`<div class="small muted">+ جانبي ${fmt(e.side)}</div>`:''}</td>${sp?`<td class="num">${fmt(sh)}</td>`:''}<td class="num"><b>${fmt(e.paid)}</b>${det?`<div class="small muted">${det}</div>`:''}</td><td class="num">${pctf(sh?e.paid/sh*100:NaN)}</td><td class="small muted">${esc(e.note||'')}</td></tr>`;}).join('');
   $('logBox').innerHTML=`<table><thead><tr><th>اليوم</th><th>الدخل</th>${sp?'<th>نصيبك</th>':''}<th>المسدد</th><th>النسبة</th><th>ملاحظة</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><th>المجموع</th><th class="num">${fmt(T.income)}</th>${sp?`<th class="num">${fmt(T.share)}</th>`:''}<th class="num">${fmt(T.paid)}</th><th class="num">${pctf(T.share?T.paid/T.share*100:NaN)}</th><th></th></tr></tfoot></table>`;
   $('logBox').querySelectorAll('tbody tr').forEach(tr=>tr.onclick=()=>{ loadEntry(tr.dataset.d); $('dayForm').scrollIntoView({behavior:'smooth',block:'start'}); });
 }
@@ -373,7 +377,7 @@ function parseLine(line){
   return {date:`${dm[3]}-${z(mon)}-${z(day)}`,paid:nb?clean(nb[0]):0,income:clean(na[na.length-1])};
 }
 function bindDebts(){
-  $('fIncome').addEventListener('input',updateLive);
+  $('fIncome').addEventListener('input',updateLive); $('fSide').addEventListener('input',updateLive);
   $('fDate').addEventListener('change',()=>{const d=$('fDate').value; if(S.entries[d]) loadEntry(d); else { editing=null; $('delBtn').hidden=true; $('formTitle').textContent='سجّل يومك'; }});
   $('saveBtn').onclick=()=>{
     const d=$('fDate').value, inc=toNum($('fIncome').value);
@@ -381,7 +385,7 @@ function bindDebts(){
     if(!isFinite(inc)||inc<0){flash('اكتب دخل اليوم بالأرقام (اكتب ٠ لو ما في دخل).',true);return;}
     const pay={}; for(const c of S.creditors){ const v=toNum($('fPay_'+c.id).value); if(isFinite(v)&&v<0){flash('المبلغ المسدد لا يكون سالبًا.',true);return;} if(isFinite(v)&&v>0) pay[c.id]=v; }
     const isNew=!S.entries[d];
-    S.entries[d]={income:inc,pay,note:$('fNote').value.trim(),updatedAt:new Date().toISOString()};
+    S.entries[d]={income:inc,pay,note:$('fNote').value.trim(),updatedAt:new Date().toISOString()}; const sd=sideVal(); if(sd&&S.profile.div>1) S.entries[d].side=sd;
     if(d===todayIso()){ setCheck(d,'logged',true); const pd=paidOf(S.entries[d]); if(pd>0&&(!S.profile.min||pd>=S.profile.min)) setCheck(d,'paidMin',true); }
     if(save()){ flash((isNew?'تم حفظ يوم ':'تم تعديل يوم ')+dShort(d)); if(isNew) toast('+١٠ نقاط','xp'); editing=d; $('delBtn').hidden=false; $('formTitle').textContent='تعديل '+dShort(d); renderDebts(); }
   };
@@ -393,7 +397,7 @@ function bindDebts(){
   $('bulkBtn').onclick=()=>{
     const lines=$('bulk').value.split(/\n/).map(s=>s.trim()).filter(Boolean), cid=$('bulkCred').value||S.creditors[0].id; let ok=0; const bad=[];
     lines.forEach((l,i)=>{ const r=parseLine(l); if(!r){bad.push(i+1);return;} const prev=S.entries[r.date]||{pay:{},note:''}; const pay=Object.assign({},prev.pay||{}); if(r.paid>0) pay[cid]=r.paid; else delete pay[cid];
-      S.entries[r.date]={income:r.income,pay,note:prev.note||'',updatedAt:new Date().toISOString()}; ok++; });
+      S.entries[r.date]={income:r.income,pay,note:prev.note||'',updatedAt:new Date().toISOString()}; if(prev.side) S.entries[r.date].side=prev.side; ok++; });
     if(!ok){$('bulkMsg').textContent='لم أفهم أي سطر. تأكد أن التاريخ مكتوب مثل ١/١١/٢٠٢٦.';return;}
     save(); renderDebts(); $('bulkMsg').textContent=`تم حفظ ${fmt(ok)} يوم`+(bad.length?`، ولم أفهم السطر رقم ${bad.map(fmt).join('، ')}`:''); if(!bad.length) $('bulk').value='';
   };
@@ -571,6 +575,39 @@ function bindMe(){
   };
 }
 
+/* ================= آراء العملاء ================= */
+const FB_KINDS=[['idea','💡 اقتراح'],['bug','🐞 مشكلة'],['praise','❤️ رأي']];
+let fbRating=0, fbKind='idea';
+function renderFeedback(){
+  $('fbStars').innerHTML=[1,2,3,4,5].map(n=>`<button type="button" role="radio" aria-checked="${n===fbRating}" aria-label="${fmt(n)} من ٥" data-star="${n}" class="${n<=fbRating?'on':''}">★</button>`).join('');
+  $('fbStars').querySelectorAll('[data-star]').forEach(b=>b.onclick=()=>{ fbRating=+b.dataset.star; renderFeedback(); });
+  $('fbKind').innerHTML=FB_KINDS.map(([k,v])=>`<button type="button" role="tab" data-k="${k}" aria-selected="${k===fbKind}">${v}</button>`).join('');
+  $('fbKind').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{ fbKind=b.dataset.k; renderFeedback(); });
+}
+function fbPayload(){ return {rating:fbRating||null,kind:fbKind,text:$('fbText').value.trim().slice(0,1500),contact:$('fbContact').value.trim().slice(0,80),app:VERSION,profiles:ST.profiles.length,days:ST.profiles.reduce((a,p)=>a+Object.keys(p.data.entries).length,0),lang:navigator.language||''}; }
+async function flushFeedback(){
+  const q=ST.ui.fbQueue||[]; if(!q.length||!navigator.onLine||!window.Hakba||!window.KHALES_FB) return;
+  while(q.length){ try{ await window.Hakba.sendFeedback(q[0]); q.shift(); save(); }catch(e){ break; } }
+}
+function bindFeedback(){
+  renderFeedback();
+  $('fbSend').onclick=async()=>{
+    const m=$('fbMsg'); if(!fbRating&&!$('fbText').value.trim()){ m.className='msg err'; m.textContent='اختر تقييمًا أو اكتب رأيك.'; return; }
+    const fb=fbPayload(); $('fbSend').disabled=true; m.className='msg'; m.textContent='جارٍ الإرسال…';
+    let sent=false; try{ if(navigator.onLine&&window.Hakba&&window.KHALES_FB){ await window.Hakba.sendFeedback(fb); sent=true; } }catch(e){}
+    if(!sent){ ST.ui.fbQueue=(ST.ui.fbQueue||[]).concat([fb]); }
+    ST.ui.fbSent=(ST.ui.fbSent||0)+1; ST.ui.fbAsked=true; save();
+    m.textContent=sent?'وصلنا رأيك، شكرًا لك! 🌱':'حُفظ رأيك، وسيُرسل تلقائيًا عند الاتصال بالإنترنت.';
+    $('fbText').value=''; fbRating=0; renderFeedback(); $('fbSend').disabled=false; $('fbHint').hidden=true;
+  };
+  $('fbHintGo').onclick=()=>{ ST.ui.fbAsked=true; save(); $('fbHint').hidden=true; go('me'); setTimeout(()=>$('fbCard').scrollIntoView({behavior:'smooth',block:'start'}),100); };
+  $('fbHintNo').onclick=()=>{ ST.ui.fbSnooze=new Date().toISOString(); save(); $('fbHint').hidden=true; };
+}
+function renderFbHint(){
+  const days=ST.profiles.reduce((a,p)=>a+Object.keys(p.data.entries).length,0), sn=ST.ui.fbSnooze?(Date.now()-new Date(ST.ui.fbSnooze))/864e5:99;
+  $('fbHint').hidden=!(days>=7&&!ST.ui.fbAsked&&sn>=5);
+}
+
 /* ================= التثبيت ================= */
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').hidden=false;});
@@ -582,8 +619,9 @@ function iosCheck(){ const ios=/iphone|ipad|ipod/i.test(navigator.userAgent), st
 let bound=false;
 function bindAll(){
   if(bound) return; bound=true;
-  bindDebts(); bindTips(); bindMe();
+  bindDebts(); bindTips(); bindMe(); bindFeedback();
   document.querySelectorAll('.tabbar button').forEach(b=>b.onclick=()=>go(b.dataset.go));
+  $('meBtn').onclick=()=>go('me');
   $('sheetClose').onclick=closeSheet; $('sheetBack').onclick=closeSheet;
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!$('sheet').hidden) closeSheet(); });
   $('backupNow').onclick=()=>{ if(canShareFile()) doShare(); else doExport(null); };
@@ -591,7 +629,7 @@ function bindAll(){
   $('iosClose').onclick=()=>{ST.ui.iosDismissed=true;save();$('iosHint').hidden=true;};
   $('trialAct').onclick=()=>go('me');
 }
-function renderAll(){ if(P) renderDebts(); else renderHeader(); if(cur==='hakba'&&window.Hakba) window.Hakba.render(); if(!P) return; if(cur==='tips') renderTips(); if(cur==='learn') renderLearn(); if(cur==='me') renderMe(); }
+function renderAll(){ renderFbHint(); flushFeedback(); if(P) renderDebts(); else renderHeader(); if(cur==='hakba'&&window.Hakba) window.Hakba.render(); if(!P) return; if(cur==='tips') renderTips(); if(cur==='learn') renderLearn(); if(cur==='me') renderMe(); }
 function showApp(){
   if(needLock()){ showLock(); return; }
   $('setup').hidden=true; $('lock').hidden=true; $('app').hidden=false; appShown=true; bindAll(); if(PAID.includes(cur)) go(cur); else renderAll(); iosCheck();
@@ -627,7 +665,7 @@ ST=normStore(loadStore()); if(!loadStore()) save();
 // أدوات مشتركة لقسم الهكبة
 window.__khalesCore={fmt,toNum,loc:()=>LOC,store:()=>ST,save,go,sheet:openSheet,closeSheet,toast,copy:copyText,
   curOptions:sel=>Object.keys(CUR).map(c=>`<option value="${c}" ${c===sel?'selected':''}>${curName(c)}</option>`).join(''),
-  baseCur:()=>S?S.profile.base:guessCur()};
+  baseCur:()=>S?S.profile.base:guessCur(), profile:()=>S, profileName:()=>P?P.name:'', refreshHeader:()=>renderHeader()};
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else setTimeout(boot,0); // بعد تحميل hakba.js
 
 if('serviceWorker' in navigator){

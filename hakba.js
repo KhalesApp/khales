@@ -419,6 +419,7 @@ function openClaim(){
 /* ================= الربط مع التطبيق ================= */
 function checkHash(){ const m=location.hash.match(/join=([A-Za-z0-9_-]+)/); if(m){ const id=m[1]; history.replaceState(null,'',location.pathname+location.search); K.go('hakba'); setTimeout(()=>openJoin(id),50); return true; } return false; }
 window.addEventListener('hashchange',checkHash);
-window.Hakba={open,render,badge,checkHash,openClaim,plan,memberState,addUnit,
+async function sendFeedback(fb){ await backend(); return DB.addDoc('feedback',Object.assign({},fb,{uid:DB.uid,at:now()})); }
+window.Hakba={open,render,badge,checkHash,openClaim,plan,memberState,addUnit,sendFeedback,
   warm(){ if(HS().list.length&&(window.KHALES_FB||MOCK)&&navigator.onLine) backend().then(()=>{ HS().list.forEach(watch); badge(); }).catch(()=>{}); }};
 })();

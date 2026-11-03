@@ -1,7 +1,7 @@
 // خالص — يحفظ ملفات التطبيق في الجوال ليعمل بدون إنترنت.
 // عند تعديل أي ملف، غيّر رقم النسخة هنا (khales-v2، v3...) ليصل التحديث للمستخدمين.
-const CACHE = 'khales-v8';
-const FILES = ['./', 'index.html', 'style.css', 'app.js', 'content.js', 'learn.js', 'hakba.js', 'firebase-config.js', 'manifest.webmanifest',
+const CACHE = 'khales-v9';
+const FILES = ['./', 'index.html', 'style.css', 'app.js', 'content.js', 'learn.js', 'hakba.js', 'day.js', 'firebase-config.js', 'manifest.webmanifest',
   'fonts/readex-pro-arabic-wght-normal.woff2', 'fonts/readex-pro-latin-wght-normal.woff2',
   'icon-192.png', 'icon-512.png', 'icon-maskable.png', 'apple-touch-icon.png', 'favicon.png'];
 
