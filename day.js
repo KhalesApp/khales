@@ -1,79 +1,19 @@
-/* =====================================================================
-   خالص — قسم «يومي»: حصّالة اليوم
-   الفكرة: كل يوم حصّالة. نيّتك، وخطواتك الثلاث، وإنجازاتك، وكلمتك عن يومك
-   كلها عملات تسقط فيها. الأيام المليئة تصطف على «رف الحصالات».
-   ===================================================================== */
-(function(){
-'use strict';
-const $=id=>document.getElementById(id);
-const K=window.__khalesCore;
-const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt=n=>K.fmt(n);
-const iso=d=>{const z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate());};
-const dObj=s=>new Date(s+'T12:00:00');
-const today=()=>iso(new Date());
-const addD=(s,n)=>{const d=dObj(s);d.setDate(d.getDate()+n);return iso(d);};
-const uid=()=>Math.random().toString(36).slice(2,9);
-const FULL=12; // عدد العملات التي تملأ الحصالة
-
-const PROMPTS=[
-'ما أكثر لحظة شعرت فيها بالفخر اليوم؟','ما الشيء الذي تعلمته اليوم ولو كان صغيرًا؟','من الشخص الذي أثّر في يومك، وكيف؟',
-'لو أعدت اليوم، ماذا ستفعل بطريقة مختلفة؟','ما الشيء الذي أجّلته اليوم، ولماذا؟','ما الذي أعطاك طاقة اليوم، وما الذي أخذها منك؟',
-'ما أصعب شيء واجهته اليوم، وكيف تعاملت معه؟','ما الخطوة الصغيرة التي قرّبتك اليوم من هدفك الكبير؟','ما النعمة التي انتبهت لها اليوم؟',
-'ما القرار الذي اتخذته اليوم وتشعر أنه صحيح؟','ما الذي ستشكر نفسك عليه بعد سنة من اليوم؟','اكتب جملة واحدة تلخص يومك.',
-'ما الشيء الذي أضعت فيه وقتًا، وكيف تتجنبه غدًا؟','ما الفكرة التي خطرت لك اليوم وتستحق أن تُكتب؟','كيف خدمت شخصًا آخر اليوم؟',
-'ما الذي جعلك تبتسم اليوم؟','ما العادة التي التزمت بها اليوم؟','ما الذي تحتاجه غدًا لتكون أفضل من اليوم؟',
-'ما الذي أنجزته اليوم ولم يكن في خطتك؟','لو كان اليوم فصلًا في قصة حياتك، ما عنوانه؟','ما الرسالة التي تريد أن تقولها لنفسك صباح الغد؟'];
-const MOODS=[['😞','ثقيل'],['😐','عادي'],['🙂','جيد'],['😄','ممتاز'],['🔥','استثنائي']];
-const promptOf=d=>PROMPTS[Math.floor(dObj(d)/864e5)%PROMPTS.length];
-
-/* ---------- البيانات ---------- */
-const S=()=>K.profile();
-function days(){ const s=S(); s.days=s.days||{}; return s.days; }
-function day(d){ const D=days(); D[d]=D[d]||{intent:'',tasks:[],extra:[],journal:'',mood:null,tomorrow:'',closed:false}; return D[d]; }
-function coins(x){ if(!x) return 0; let c=0; if(x.intent) c+=1; c+=x.tasks.filter(t=>t.done).length*2; c+=(x.extra||[]).length; if((x.journal||'').trim().length>=20) c+=3; else if((x.journal||'').trim()) c+=1; if(x.mood!=null) c+=1; if((x.tomorrow||'').trim()) c+=1; if(x.closed) c+=1; return c; }
-function writtenStreak(){ const D=days(); let n=0, d=today(); if(!(D[d]&&coins(D[d])>0)) d=addD(d,-1); while(D[d]&&coins(D[d])>0){ n++; d=addD(d,-1);} return n; }
-window.__khalesDayXP=()=>{ const s=K.profile(); if(!s||!s.days) return 0; return Object.values(s.days).reduce((a,x)=>a+coins(x)*2,0); };
-function save(){ K.save(); K.refreshHeader(); }
-
-/* ---------- الحصالة ---------- */
-function jarSVG(c,big){
-  const lvl=Math.min(1,c/FULL), H=big?150:56, W=big?120:46, top=big?28:11, inner=H-top-6, fillH=Math.round(inner*lvl);
-  const n=Math.min(c,big?FULL:6), coinsSvg=[];
-  for(let i=0;i<n&&big;i++){ const row=Math.floor(i/4), col=i%4; coinsSvg.push(`<circle cx="${26+col*22+(row%2?11:0)}" cy="${H-16-row*15}" r="8" class="coin"/>`); }
-  return `<svg viewBox="0 0 ${W} ${H}" class="jar${big?' big':''}" aria-hidden="true">
-    <defs><clipPath id="jc${big?'B':''}${c}"><rect x="${W*.12}" y="${top}" width="${W*.76}" height="${H-top-3}" rx="${big?18:7}"/></clipPath></defs>
-    <rect x="${W*.12}" y="${top}" width="${W*.76}" height="${H-top-3}" rx="${big?18:7}" class="jar-glass"/>
-    <g clip-path="url(#jc${big?'B':''}${c})"><rect x="0" y="${H-3-fillH}" width="${W}" height="${fillH}" class="jar-fill"/>${coinsSvg.join('')}</g>
-    <rect x="${W*.28}" y="${top-(big?12:5)}" width="${W*.44}" height="${big?12:5}" rx="${big?4:2}" class="jar-lid"/>
-    <rect x="${W*.4}" y="${top-(big?9:4)}" width="${W*.2}" height="${big?3:1.5}" rx="1" class="jar-slot"/>
-  </svg>`;
-}
-function dropCoin(n){
-  const j=document.querySelector('.day-jar'); if(!j||matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  for(let i=0;i<(n||1);i++){ const c=document.createElement('span'); c.className='coin-drop'; c.style.animationDelay=(i*120)+'ms'; j.appendChild(c); setTimeout(()=>c.remove(),900+i*120); }
-}
-function refreshJar(d){ const x=day(d), c=coins(x), j=document.querySelector('.day-jar'); if(!j) return;
-  j.querySelector('svg').outerHTML=jarSVG(c,true); j.querySelector('.jar-count').innerHTML=`${fmt(c)}<small>/${fmt(FULL)}</small>`;
-  const sh=document.querySelector('.shelf'); if(sh){ sh.innerHTML=shelf(); sh.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{ viewDate=b.dataset.day===today()?null:b.dataset.day; render(); window.scrollTo({top:0,behavior:'smooth'}); }); } }
-function earn(n,msg){ if(n>0){ dropCoin(n); K.toast(msg||('+'+fmt(n)+' في حصّالة اليوم'),'xp'); } }
-
-/* ---------- الواجهة ---------- */
-let viewDate=null;
-function greet(){ const h=new Date().getHours(); return h<12?'صباح الخير':h<17?'يومك سعيد':'مساء الخير'; }
-function render(){
-  const root=$('dayRoot'); if(!root||!S()) return;
-  const d=viewDate||today(), isToday=d===today(), x=day(d), c=coins(x), st=writtenStreak(), name=(K.profileName()||'').split(' ')[0];
-  const dl=dObj(d).toLocaleDateString(K.loc(),{weekday:'long',day:'numeric',month:'long'});
-  root.innerHTML=`
+/* خالص © KhalesApp — جميع الحقوق محفوظة */
+(function(){"use strict";const v=e=>document.getElementById(e),i=window.__khalesCore,y=e=>String(e==null?"":e).replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t]),h=e=>i.fmt(e),_=e=>{const t=a=>String(a).padStart(2,"0");return e.getFullYear()+"-"+t(e.getMonth()+1)+"-"+t(e.getDate())},L=e=>new Date(e+"T12:00:00"),S=()=>_(new Date),M=(e,t)=>{const a=L(e);return a.setDate(a.getDate()+t),_(a)},X=()=>Math.random().toString(36).slice(2,9),T=12,F=["ما أكثر لحظة شعرت فيها بالفخر اليوم؟","ما الشيء الذي تعلمته اليوم ولو كان صغيرًا؟","من الشخص الذي أثّر في يومك، وكيف؟","لو أعدت اليوم، ماذا ستفعل بطريقة مختلفة؟","ما الشيء الذي أجّلته اليوم، ولماذا؟","ما الذي أعطاك طاقة اليوم، وما الذي أخذها منك؟","ما أصعب شيء واجهته اليوم، وكيف تعاملت معه؟","ما الخطوة الصغيرة التي قرّبتك اليوم من هدفك الكبير؟","ما النعمة التي انتبهت لها اليوم؟","ما القرار الذي اتخذته اليوم وتشعر أنه صحيح؟","ما الذي ستشكر نفسك عليه بعد سنة من اليوم؟","اكتب جملة واحدة تلخص يومك.","ما الشيء الذي أضعت فيه وقتًا، وكيف تتجنبه غدًا؟","ما الفكرة التي خطرت لك اليوم وتستحق أن تُكتب؟","كيف خدمت شخصًا آخر اليوم؟","ما الذي جعلك تبتسم اليوم؟","ما العادة التي التزمت بها اليوم؟","ما الذي تحتاجه غدًا لتكون أفضل من اليوم؟","ما الذي أنجزته اليوم ولم يكن في خطتك؟","لو كان اليوم فصلًا في قصة حياتك، ما عنوانه؟","ما الرسالة التي تريد أن تقولها لنفسك صباح الغد؟"],O=[["😞","ثقيل"],["😐","عادي"],["🙂","جيد"],["😄","ممتاز"],["🔥","استثنائي"]],W=e=>F[Math.floor(L(e)/864e5)%F.length],G=()=>i.profile();function q(){const e=G();return e.days=e.days||{},e.days}function R(e){const t=q();return t[e]=t[e]||{intent:"",tasks:[],extra:[],journal:"",mood:null,tomorrow:"",closed:!1},t[e]}function w(e){if(!e)return 0;let t=0;return e.intent&&(t+=1),t+=e.tasks.filter(a=>a.done).length*2,t+=(e.extra||[]).length,(e.journal||"").trim().length>=20?t+=3:(e.journal||"").trim()&&(t+=1),e.mood!=null&&(t+=1),(e.tomorrow||"").trim()&&(t+=1),e.closed&&(t+=1),t}function K(){const e=q();let t=0,a=S();for(e[a]&&w(e[a])>0||(a=M(a,-1));e[a]&&w(e[a])>0;)t++,a=M(a,-1);return t}window.__khalesDayXP=()=>{const e=i.profile();return!e||!e.days?0:Object.values(e.days).reduce((t,a)=>t+w(a)*2,0)};function b(){const e=q(),t=new Date().toISOString(),a=j||S();e[a]&&(e[a].u=t);const n=M(a,1);e[n]&&!e[n].u&&(e[n].u=t),i.save(),i.refreshHeader()}const C=6,B=e=>Math.min(C,Math.max(3,e.tasks.length,e.slots||3));function H(e,t){const a=Math.min(1,e/T),n=t?150:56,l=t?120:46,o=t?28:11,k=n-o-6,u=Math.round(k*a),E=Math.min(e,t?T:6),s=[];for(let d=0;d<E&&t;d++){const m=Math.floor(d/4),c=d%4;s.push(`<circle cx="${26+c*22+(m%2?11:0)}" cy="${n-16-m*15}" r="8" class="coin"/>`)}return`<svg viewBox="0 0 ${l} ${n}" class="jar${t?" big":""}" aria-hidden="true">
+    <defs><clipPath id="jc${t?"B":""}${e}"><rect x="${l*.12}" y="${o}" width="${l*.76}" height="${n-o-3}" rx="${t?18:7}"/></clipPath></defs>
+    <rect x="${l*.12}" y="${o}" width="${l*.76}" height="${n-o-3}" rx="${t?18:7}" class="jar-glass"/>
+    <g clip-path="url(#jc${t?"B":""}${e})"><rect x="0" y="${n-3-u}" width="${l}" height="${u}" class="jar-fill"/>${s.join("")}</g>
+    <rect x="${l*.28}" y="${o-(t?12:5)}" width="${l*.44}" height="${t?12:5}" rx="${t?4:2}" class="jar-lid"/>
+    <rect x="${l*.4}" y="${o-(t?9:4)}" width="${l*.2}" height="${t?3:1.5}" rx="1" class="jar-slot"/>
+  </svg>`}function Y(e){const t=document.querySelector(".day-jar");if(!(!t||matchMedia("(prefers-reduced-motion: reduce)").matches))for(let a=0;a<(e||1);a++){const n=document.createElement("span");n.className="coin-drop",n.style.animationDelay=a*120+"ms",t.appendChild(n),setTimeout(()=>n.remove(),900+a*120)}}function P(e){const t=R(e),a=w(t),n=document.querySelector(".day-jar");if(!n)return;n.querySelector("svg").outerHTML=H(a,!0),n.querySelector(".jar-count").innerHTML=`${h(a)}<small>/${h(T)}</small>`;const l=document.querySelector(".shelf");l&&(l.innerHTML=z(),l.querySelectorAll("[data-day]").forEach(o=>o.onclick=()=>{j=o.dataset.day===S()?null:o.dataset.day,f(),window.scrollTo({top:0,behavior:"smooth"})}))}function A(e,t){e>0&&(Y(e),i.toast(t||"+"+h(e)+" في حصّالة اليوم","xp"))}let j=null,D="today",J="week",I=0;function Q(){const e=new Date().getHours();return e<12?"صباح الخير":e<17?"يومك سعيد":"مساء الخير"}function f(){const e=v("dayRoot");if(!e||!G())return;const t=`<div class="seg sec-seg rose-seg" role="tablist"><button type="button" role="tab" data-mode="today" aria-selected="${D==="today"}">صفحة اليوم</button><button type="button" role="tab" data-mode="review" aria-selected="${D==="review"}">مراجعة الأيام</button></div>`,a=()=>e.querySelectorAll("[data-mode]").forEach(c=>{c.onclick=()=>{D=c.dataset.mode,D==="today"&&(j=null),f(),i.scrollTop()}});if(D==="review"){e.innerHTML=t+at(),a(),st(e);return}const n=j||S(),l=n===S(),o=R(n),k=w(o),u=K(),E=(i.profileName()||"").split(" ")[0],s=L(n).toLocaleDateString(i.loc(),{weekday:"long",day:"numeric",month:"long"}),d=B(o),m=["الهدف الأهم…","الهدف الثاني…","الهدف الثالث…","هدف رابع…","هدف خامس…","هدف سادس…"];e.innerHTML=t+`
   <section class="hero rose-hero day-hero">
     <div class="day-top">
-      <div class="day-jar">${jarSVG(c,true)}<span class="jar-count num">${fmt(c)}<small>/${fmt(FULL)}</small></span></div>
+      <div class="day-jar">${H(k,!0)}<span class="jar-count num">${h(k)}<small>/${h(T)}</small></span></div>
       <div class="day-head">
-        <span class="hero-lbl">${isToday?esc(greet())+(name?'، '+esc(name):''):'صفحة '+esc(dl)}</span>
-        <h2 class="today-title">${isToday?'حصّالة يومك':esc(dl)}</h2>
-        <p class="today-body small">${c>=FULL?'امتلأت حصّالتك اليوم. يوم يستحق أن يُحكى ✨':c?'كل خطوة تكتبها عملة. املأها قبل نهاية اليوم.':'ابدأ بنيّة واحدة، وشاهد الحصّالة تمتلئ.'}</p>
-        <div class="row"><span class="tag light">🔥 ${fmt(st)} ${st===1?'يوم':'أيام'} متتالية</span>${!isToday?`<button class="btn sm on-hero" type="button" id="dyToday">رجوع لليوم</button>`:''}</div>
+        <span class="hero-lbl">${l?y(Q())+(E?"، "+y(E):""):"صفحة "+y(s)}</span>
+        <h2 class="today-title">${l?"حصّالة يومك":y(s)}</h2>
+        <p class="today-body small">${k>=T?"امتلأت حصّالتك اليوم. يوم يستحق أن يُحكى ✨":k?"كل هدف تنجزه عملتان. املأها قبل نهاية اليوم.":"ابدأ بنيّة واحدة، وشاهد الحصّالة تمتلئ."}</p>
+        <div class="row"><span class="tag light">🔥 ${h(u)} ${u===1?"يوم":"أيام"} متتالية</span>${l?"":'<button class="btn sm on-hero" type="button" id="dyToday">رجوع لليوم</button>'}</div>
       </div>
     </div>
   </section>
@@ -81,81 +21,50 @@ function render(){
   <section class="card day-intent">
     <span class="day-step">١</span>
     <div><h3 class="m0">نيّة اليوم</h3><p class="small muted m0">شيء واحد لو أنجزته، يكون يومك ناجحًا.</p></div>
-    <input id="dyIntent" class="intent-in" value="${esc(x.intent)}" placeholder="مثال: أنهي تصميم صفحة المنتج" maxlength="120">
+    <input id="dyIntent" class="intent-in" value="${y(o.intent)}" placeholder="مثال: أنهي تصميم صفحة المنتج" maxlength="120">
   </section>
 
   <section class="card">
-    <div class="card-h"><div class="row"><span class="day-step">٢</span><h3 class="m0">ثلاث خطوات فقط</h3></div><span class="small muted">كل خطوة تنجزها = عملتان</span></div>
-    <div class="steps3">${[0,1,2].map(i=>{ const t=x.tasks[i]; return t?`<div class="step3 ${t.done?'done':''}"><button class="tick" type="button" data-tick="${t.id}" aria-label="${t.done?'إلغاء الإنجاز':'تم'}">${t.done?'✓':''}</button><span class="st-t">${esc(t.t)}</span>${!t.done&&isToday?`<button class="icon-btn" type="button" data-later="${t.id}" title="أجّلها لبكرة">↩︎</button>`:''}<button class="icon-btn" type="button" data-deltask="${t.id}" aria-label="حذف">×</button></div>`
-      :`<div class="step3 empty-step"><span class="tick ghost"></span><input data-newtask="${i}" placeholder="${['الخطوة الأهم…','الخطوة الثانية…','الخطوة الثالثة…'][i]}" maxlength="100"></div>`; }).join('')}</div>
+    <div class="card-h"><div class="row"><span class="day-step">٢</span><h3 class="m0">أهداف اليوم</h3></div><span class="small muted">كل هدف تنجزه = عملتان</span></div>
+    <div class="steps3">${Array.from({length:d},(c,$)=>{const r=o.tasks[$];return r?`<div class="step3 ${r.done?"done":""}"><button class="tick" type="button" data-tick="${r.id}" aria-label="${r.done?"إلغاء الإنجاز":"تم"}">${r.done?"✓":""}</button><span class="st-t" data-edit="${r.id}" role="button" tabindex="0" title="اضغط للتعديل">${y(r.t)}</span>${!r.done&&l?`<button class="icon-btn" type="button" data-later="${r.id}" title="أجّله لبكرة">↩︎</button>`:""}<button class="icon-btn" type="button" data-deltask="${r.id}" aria-label="حذف">×</button></div>`:`<div class="step3 empty-step"><span class="tick ghost"></span><input data-newtask="${$}" placeholder="${m[$]}" maxlength="100"></div>`}).join("")}</div>
+    <div class="row sp">${d<C?`<button class="btn sm ghost" type="button" id="dyMore">+ هدف إضافي (${h(d)}/${h(C)})</button>`:`<span class="small muted">وصلت الحد الأعلى: ${h(C)} أهداف</span>`}<span class="small muted">اضغط النص للتعديل، والدائرة للإنجاز</span></div>
+    <div class="goal-tip">💡 <b>لا تزيد أهدافك.</b> ثلاثة أهداف تنجزها خير من ستة تبقى معلّقة. ابدأ بالأهم.</div>
   </section>
 
   <section class="card">
     <div class="card-h"><div class="row"><span class="day-step">٣</span><h3 class="m0">أنجزت شيئًا ما كان في الخطة؟</h3></div><span class="small muted">عملة لكل إنجاز</span></div>
-    <div class="extras">${(x.extra||[]).map((e,i)=>`<span class="extra-chip">⭐ ${esc(e.t)} <button type="button" data-delx="${i}" aria-label="حذف">×</button></span>`).join('')}</div>
+    <div class="extras">${(o.extra||[]).map((c,$)=>`<span class="extra-chip">⭐ ${y(c.t)} <button type="button" data-delx="${$}" aria-label="حذف">×</button></span>`).join("")}</div>
     <div class="row"><input id="dyExtra" placeholder="مثال: ساعدت زميلي، قرأت ١٠ صفحات، رتّبت المحل" maxlength="100" style="flex:1"><button class="btn sm rose" type="button" id="dyExtraAdd">أضف</button></div>
   </section>
 
   <section class="card day-journal">
     <div class="card-h"><div class="row"><span class="day-step">٤</span><h3 class="m0">دفتر اليوم</h3></div><span class="small muted">٣ عملات لكلمة صادقة</span></div>
-    <div class="prompt">«${esc(promptOf(d))}»</div>
-    <textarea id="dyJournal" placeholder="اكتب بحرية… لا أحد يقرأها غيرك.">${esc(x.journal)}</textarea>
-    <div><span class="small muted">كيف كان يومك؟</span><div class="moods">${MOODS.map((m,i)=>`<button type="button" class="mood ${x.mood===i?'on':''}" data-mood="${i}"><span>${m[0]}</span><small>${m[1]}</small></button>`).join('')}</div></div>
-    <label>كلمة لنفسك بكرة<input id="dyTmr" value="${esc(x.tomorrow)}" placeholder="مثال: ابدأ بالأصعب قبل الظهر" maxlength="140"></label>
-    <div class="row"><button class="btn rose" type="button" id="dyClose">${x.closed?'عرض بطاقة يومك':'اختم يومك'}</button><span class="small muted" id="dySaved"></span></div>
+    <div class="prompt">«${y(W(n))}»</div>
+    <textarea id="dyJournal" placeholder="اكتب بحرية… لا أحد يقرأها غيرك.">${y(o.journal)}</textarea>
+    <div><span class="small muted">كيف كان يومك؟</span><div class="moods">${O.map((c,$)=>`<button type="button" class="mood ${o.mood===$?"on":""}" data-mood="${$}"><span>${c[0]}</span><small>${c[1]}</small></button>`).join("")}</div></div>
+    <label>كلمة لنفسك بكرة<input id="dyTmr" value="${y(o.tomorrow)}" placeholder="مثال: ابدأ بالأصعب قبل الظهر" maxlength="140"></label>
+    <div class="row"><button class="btn rose" type="button" id="dyClose">${o.closed?"عرض بطاقة يومك":"اختم يومك"}</button><span class="small muted" id="dySaved"></span></div>
   </section>
 
   <section class="card">
-    <div class="card-h"><h3 class="m0">رف الحصالات</h3><span class="small muted num">${weekLine()}</span></div>
-    <div class="shelf">${shelf()}</div>
+    <div class="card-h"><h3 class="m0">رف الحصالات</h3><span class="small muted num">${Z()}</span></div>
+    <div class="shelf">${z()}</div>
     <p class="small muted m0">اضغط أي حصّالة لتفتح صفحة ذلك اليوم.</p>
-  </section>`;
-  bind(d,x);
-}
-function weekLine(){ let t=0,j=0; for(let i=0;i<7;i++){ const x=days()[addD(today(),-i)]; if(!x) continue; t+=x.tasks.filter(k=>k.done).length+(x.extra||[]).length; if((x.journal||'').trim()) j++; } return `هذا الأسبوع: ${fmt(t)} إنجاز · ${fmt(j)} صفحة`; }
-function shelf(){ const out=[]; for(let i=13;i>=0;i--){ const d=addD(today(),-i), x=days()[d], c=coins(x), wd=dObj(d).toLocaleDateString(K.loc(),{weekday:'short'}); out.push(`<button type="button" class="shelf-jar ${d===(viewDate||today())?'on':''} ${c>=FULL?'full':''}" data-day="${d}" title="${d}">${jarSVG(c,false)}<small>${i===0?'اليوم':esc(wd)}</small></button>`); } return out.join(''); }
-let saveT;
-function bind(d,x){
-  const root=$('dayRoot');
-  const later=()=>{ clearTimeout(saveT); $('dySaved').textContent='يُحفظ…'; saveT=setTimeout(()=>{ save(); $('dySaved').textContent='محفوظ ✓'; },500); };
-  const t=$('dyToday'); if(t) t.onclick=()=>{ viewDate=null; render(); };
-  $('dyIntent').onchange=()=>{ const had=!!x.intent; x.intent=$('dyIntent').value.trim(); save(); refreshJar(d); if(!had&&x.intent) earn(1,'نيّة واضحة · +١'); };
-  // تُضاف الخطوة بزر Enter أو عند الخروج من الخانة، مرة واحدة فقط
-  const addTask=(inp,refocus)=>{ const v=inp.value.trim(); if(!v||x.tasks.length>=3) return; inp.value=''; x.tasks.push({id:uid(),t:v,done:false}); save(); render(); if(refocus){ const n=$('dayRoot').querySelector('[data-newtask]'); if(n) n.focus(); } };
-  root.querySelectorAll('[data-newtask]').forEach(inp=>{ inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addTask(inp,true); } }); inp.addEventListener('blur',e=>addTask(inp,!!(e.relatedTarget&&e.relatedTarget.dataset&&'newtask' in e.relatedTarget.dataset))); });
-  root.querySelectorAll('[data-tick]').forEach(b=>b.onclick=()=>{ const k=x.tasks.find(q=>q.id===b.dataset.tick); k.done=!k.done; k.at=k.done?new Date().toISOString():null; save();
-    if(k.done){ const all=x.tasks.length===3&&x.tasks.every(q=>q.done); render(); earn(2,all?'أنجزت خطواتك الثلاث! 🎉':'+٢ في الحصّالة'); } else render(); });
-  root.querySelectorAll('[data-later]').forEach(b=>b.onclick=()=>{ const i=x.tasks.findIndex(q=>q.id===b.dataset.later); const tm=day(addD(d,1)); if(tm.tasks.length>=3){ K.toast('خطوات بكرة مكتملة (٣)'); return; } const [k]=x.tasks.splice(i,1); tm.tasks.push({id:uid(),t:k.t,done:false}); save(); render(); K.toast('انتقلت لبكرة'); });
-  root.querySelectorAll('[data-deltask]').forEach(b=>b.onclick=()=>{ x.tasks=x.tasks.filter(q=>q.id!==b.dataset.deltask); save(); render(); });
-  const addX=()=>{ const v=$('dyExtra').value.trim(); if(!v) return; x.extra=x.extra||[]; x.extra.push({t:v,at:new Date().toISOString()}); save(); render(); earn(1,'⭐ إنجاز إضافي · +١'); };
-  $('dyExtraAdd').onclick=addX; $('dyExtra').addEventListener('keydown',e=>{ if(e.key==='Enter') addX(); });
-  root.querySelectorAll('[data-delx]').forEach(b=>b.onclick=()=>{ x.extra.splice(+b.dataset.delx,1); save(); render(); });
-  let jBefore=coins(x);
-  $('dyJournal').addEventListener('input',()=>{ x.journal=$('dyJournal').value; later(); });
-  $('dyJournal').addEventListener('blur',()=>{ const n=coins(x); if(n>jBefore){ save(); refreshJar(d); earn(n-jBefore,'كلمة صادقة · +'+fmt(n-jBefore)); } jBefore=n; });
-  root.querySelectorAll('[data-mood]').forEach(b=>b.onclick=()=>{ const first=x.mood==null; x.mood=+b.dataset.mood; save(); root.querySelectorAll('[data-mood]').forEach(m=>m.classList.toggle('on',m===b)); refreshJar(d); if(first) earn(1); });
-  $('dyTmr').onchange=()=>{ const first=!x.tomorrow; x.tomorrow=$('dyTmr').value.trim(); save(); refreshJar(d); if(first&&x.tomorrow) earn(1); };
-  $('dyClose').onclick=()=>{ x.journal=$('dyJournal').value; x.tomorrow=$('dyTmr').value.trim(); x.intent=$('dyIntent').value.trim(); if(!x.closed){ x.closed=true; save(); earn(1,'ختمت يومك · +١'); } else save(); card(d,x); render(); };
-  root.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{ viewDate=b.dataset.day===today()?null:b.dataset.day; render(); window.scrollTo({top:0,behavior:'smooth'}); });
-}
-function cardText(d,x){
-  const dl=dObj(d).toLocaleDateString(K.loc(),{weekday:'long',day:'numeric',month:'long'}), done=x.tasks.filter(t=>t.done), m=x.mood!=null?MOODS[x.mood]:null;
-  return [`📒 يومي — ${dl}`, x.intent?`🎯 نيّتي: ${x.intent}`:'', done.length?`✅ أنجزت: ${done.map(t=>t.t).join('، ')}`:'', (x.extra||[]).length?`⭐ وأيضًا: ${x.extra.map(e=>e.t).join('، ')}`:'', m?`${m[0]} يومي كان ${m[1]}`:'', x.tomorrow?`✉️ لنفسي بكرة: ${x.tomorrow}`:'', `🪙 ${coins(x)} عملة في حصّالة اليوم`, '', '— من تطبيق خالص'].filter((l,i,a)=>l||i===a.length-2).join('\n');
-}
-function card(d,x){
-  const done=x.tasks.filter(t=>t.done), m=x.mood!=null?MOODS[x.mood]:null, c=coins(x);
-  K.sheet('بطاقة يومك',`<div class="day-card">
-    <div class="dc-jar">${jarSVG(c,true)}</div>
-    <div class="dc-body"><b class="dc-date">${esc(dObj(d).toLocaleDateString(K.loc(),{weekday:'long',day:'numeric',month:'long'}))}</b>
-    ${x.intent?`<div>🎯 ${esc(x.intent)}</div>`:''}
-    ${done.length?`<div>✅ ${done.map(t=>esc(t.t)).join(' · ')}</div>`:''}
-    ${(x.extra||[]).length?`<div>⭐ ${x.extra.map(e=>esc(e.t)).join(' · ')}</div>`:''}
-    ${m?`<div>${m[0]} يوم ${m[1]}</div>`:''}
-    ${x.tomorrow?`<div class="dc-tmr">«${esc(x.tomorrow)}»</div>`:''}
-    <div class="num small">🪙 ${fmt(c)} عملة · 🔥 ${fmt(writtenStreak())} أيام متتالية</div></div></div>
-    <p class="small muted m0">${c>=FULL?'يوم كامل. هذا هو الشخص الذي تريد أن تكونه.':'كل يوم تكتب فيه تبني نسخة أقوى منك. أراك بكرة.'}</p>
-    <div class="row"><button class="btn rose" type="button" id="dcCopy">نسخ البطاقة</button></div>`);
-  $('dcCopy').onclick=e=>K.copy(cardText(d,x),e.currentTarget);
-}
-window.Day={render,open(){ viewDate=null; render(); }};
-})();
+  </section>`,x(n,o)}function Z(){let e=0,t=0;for(let a=0;a<7;a++){const n=q()[M(S(),-a)];n&&(e+=n.tasks.filter(l=>l.done).length+(n.extra||[]).length,(n.journal||"").trim()&&t++)}return`هذا الأسبوع: ${h(e)} إنجاز · ${h(t)} صفحة`}function z(){const e=[];for(let t=13;t>=0;t--){const a=M(S(),-t),n=q()[a],l=w(n),o=L(a).toLocaleDateString(i.loc(),{weekday:"short"});e.push(`<button type="button" class="shelf-jar ${a===(j||S())?"on":""} ${l>=T?"full":""}" data-day="${a}" title="${a}">${H(l,!1)}<small>${t===0?"اليوم":y(o)}</small></button>`)}return e.join("")}let U;function x(e,t){const a=v("dayRoot");et(a);const n=()=>{clearTimeout(U),v("dySaved").textContent="يُحفظ…",U=setTimeout(()=>{b(),v("dySaved").textContent="محفوظ ✓"},500)},l=v("dyToday");l&&(l.onclick=()=>{j=null,f()}),v("dyIntent").onchange=()=>{const s=!!t.intent;t.intent=v("dyIntent").value.trim(),b(),P(e),!s&&t.intent&&A(1,"نيّة واضحة · +١")};const o=(s,d)=>{const m=s.value.trim();if(!(!m||t.tasks.length>=B(t))&&(s.value="",t.tasks.push({id:X(),t:m,done:!1}),b(),f(),d)){const c=v("dayRoot").querySelector("[data-newtask]");c&&c.focus()}};a.querySelectorAll("[data-newtask]").forEach(s=>{s.addEventListener("keydown",d=>{d.key==="Enter"&&(d.preventDefault(),o(s,!0))}),s.addEventListener("blur",d=>o(s,!!(d.relatedTarget&&d.relatedTarget.dataset&&"newtask"in d.relatedTarget.dataset)))}),a.querySelectorAll("[data-tick]").forEach(s=>s.onclick=()=>{const d=t.tasks.find(m=>m.id===s.dataset.tick);if(d.done=!d.done,d.at=d.done?new Date().toISOString():null,b(),d.done){const m=t.tasks.length>=3&&t.tasks.every(c=>c.done);f(),A(2,m?"أنجزت كل أهداف اليوم! 🎉":"+٢ في الحصّالة"),m&&i.confetti()}else f()}),a.querySelectorAll("[data-later]").forEach(s=>s.onclick=()=>{const d=t.tasks.findIndex($=>$.id===s.dataset.later),m=R(M(e,1));if(m.tasks.length>=C){i.toast("أهداف بكرة مكتملة");return}const[c]=t.tasks.splice(d,1);m.tasks.push({id:X(),t:c.t,done:!1}),b(),f(),i.toast("انتقلت لبكرة")});const k=v("dyMore");k&&(k.onclick=()=>{t.slots=B(t)+1,b(),f();const s=a.querySelectorAll("[data-newtask]");s.length&&s[s.length-1].focus()}),a.querySelectorAll("[data-edit]").forEach(s=>{const d=()=>{const m=t.tasks.find(p=>p.id===s.dataset.edit);if(!m)return;const c=document.createElement("input");c.value=m.t,c.maxLength=100,c.className="st-edit",s.parentNode.replaceChild(c,s),c.focus();try{c.setSelectionRange(c.value.length,c.value.length)}catch(p){}let $=!1;const r=p=>{if($)return;$=!0;const g=c.value.trim();p&&g&&g!==m.t&&(m.t=g,b(),i.toast("تم تعديل الهدف")),f()};c.addEventListener("keydown",p=>{p.key==="Enter"?(p.preventDefault(),r(!0)):p.key==="Escape"&&r(!1)}),c.addEventListener("blur",()=>r(!0))};s.onclick=d,s.addEventListener("keydown",m=>{m.key==="Enter"&&d()})}),a.querySelectorAll("[data-deltask]").forEach(s=>s.onclick=()=>{t.tasks=t.tasks.filter(d=>d.id!==s.dataset.deltask),b(),f()});const u=()=>{const s=v("dyExtra").value.trim();s&&(t.extra=t.extra||[],t.extra.push({t:s,at:new Date().toISOString()}),b(),f(),A(1,"⭐ إنجاز إضافي · +١"))};v("dyExtraAdd").onclick=u,v("dyExtra").addEventListener("keydown",s=>{s.key==="Enter"&&u()}),a.querySelectorAll("[data-delx]").forEach(s=>s.onclick=()=>{t.extra.splice(+s.dataset.delx,1),b(),f()});let E=w(t);v("dyJournal").addEventListener("input",()=>{t.journal=v("dyJournal").value,n()}),v("dyJournal").addEventListener("blur",()=>{const s=w(t);s>E&&(b(),P(e),A(s-E,"كلمة صادقة · +"+h(s-E))),E=s}),a.querySelectorAll("[data-mood]").forEach(s=>s.onclick=()=>{const d=t.mood==null;t.mood=+s.dataset.mood,b(),a.querySelectorAll("[data-mood]").forEach(m=>m.classList.toggle("on",m===s)),P(e),d&&A(1)}),v("dyTmr").onchange=()=>{const s=!t.tomorrow;t.tomorrow=v("dyTmr").value.trim(),b(),P(e),s&&t.tomorrow&&A(1)},v("dyClose").onclick=()=>{t.journal=v("dyJournal").value,t.tomorrow=v("dyTmr").value.trim(),t.intent=v("dyIntent").value.trim(),t.closed?b():(t.closed=!0,b(),A(1,"ختمت يومك · +١")),V(e,t),f()},a.querySelectorAll("[data-day]").forEach(s=>s.onclick=()=>{j=s.dataset.day===S()?null:s.dataset.day,f(),window.scrollTo({top:0,behavior:"smooth"})})}function tt(e,t){const a=L(e).toLocaleDateString(i.loc(),{weekday:"long",day:"numeric",month:"long"}),n=t.tasks.filter(o=>o.done),l=t.mood!=null?O[t.mood]:null;return[`📒 يومي — ${a}`,t.intent?`🎯 نيّتي: ${t.intent}`:"",n.length?`✅ أنجزت: ${n.map(o=>o.t).join("، ")}`:"",(t.extra||[]).length?`⭐ وأيضًا: ${t.extra.map(o=>o.t).join("، ")}`:"",l?`${l[0]} يومي كان ${l[1]}`:"",t.tomorrow?`✉️ لنفسي بكرة: ${t.tomorrow}`:"",`🪙 ${w(t)} عملة في حصّالة اليوم`,"","— من تطبيق خالص"].filter((o,k,u)=>o||k===u.length-2).join(`
+`)}function V(e,t,a){const n=t.tasks.filter(u=>u.done),l=t.mood!=null?O[t.mood]:null,o=w(t);i.sheet("بطاقة يومك",`<div class="day-card">
+    <div class="dc-jar">${H(o,!0)}</div>
+    <div class="dc-body"><b class="dc-date">${y(L(e).toLocaleDateString(i.loc(),{weekday:"long",day:"numeric",month:"long"}))}</b>
+    ${t.intent?`<div>🎯 ${y(t.intent)}</div>`:""}
+    ${n.length?`<div>✅ ${n.map(u=>y(u.t)).join(" · ")}</div>`:""}
+    ${(t.extra||[]).length?`<div>⭐ ${t.extra.map(u=>y(u.t)).join(" · ")}</div>`:""}
+    ${l?`<div>${l[0]} يوم ${l[1]}</div>`:""}
+    ${t.tomorrow?`<div class="dc-tmr">«${y(t.tomorrow)}»</div>`:""}
+    <div class="num small">🪙 ${h(o)} عملة · 🔥 ${h(K())} أيام متتالية</div></div></div>
+    <p class="small muted m0">${o>=T?"يوم كامل. هذا هو الشخص الذي تريد أن تكونه.":"كل يوم تكتب فيه تبني نسخة أقوى منك. أراك بكرة."}</p>
+    ${(t.journal||"").trim()?`<div class="rule-box rose" style="white-space:pre-line">📝 ${y(t.journal)}</div>`:""}
+    ${t.tasks.some(u=>!u.done)?`<div class="small muted">لم يكتمل: ${t.tasks.filter(u=>!u.done).map(u=>y(u.t)).join(" · ")}</div>`:""}
+    <div class="row"><button class="btn rose" type="button" id="dcCopy">نسخ البطاقة</button>${a?'<button class="btn" type="button" id="dcOpen">افتح الصفحة للتعديل</button>':""}</div>`);const k=v("dcOpen");k&&(k.onclick=()=>{i.closeSheet(),D="today",j=e===S()?null:e,f(),i.scrollTop()}),v("dcCopy").onclick=u=>i.copy(tt(e,t),u.currentTarget)}function et(e){e.querySelectorAll("[data-mode]").forEach(t=>{t.onclick=()=>{D=t.dataset.mode,D==="today"&&(j=null),f(),i.scrollTop()}})}function at(){const e=i.period(J,I),t=q(),a=[];let n=0,l=0,o=0,k=0,u=0,E=0;const s=e.to>S()?S():e.to;for(let r=s;r>=e.from;r=M(r,-1)){const p=t[r];!p||w(p)<=0||(a.push([r,p]),n+=p.tasks.filter(g=>g.done).length,l+=p.tasks.length,w(p)>=T&&o++,p.mood!=null&&(k+=p.mood,u++),(p.journal||"").trim()&&E++)}const d=e.buckets,m=d.map(r=>w(t[r.from])),c=u?O[Math.round(k/u)]:null,$=[];return a.forEach(r=>r[1].tasks.forEach(p=>{!p.done&&$.length<5&&$.push([r[0],p.t])})),`${i.pnav(["week","month"],J,I,e.label)}
+  <div class="kpis"><div class="kpi"><span>أيام كتبت فيها</span><b class="num">${h(a.length)}</b></div><div class="kpi"><span>أهداف أنجزتها</span><b class="num">${h(n)} / ${h(l)}</b></div><div class="kpi"><span>حصّالات ممتلئة</span><b class="num">🪙 ${h(o)}</b></div><div class="kpi"><span>مزاجك الغالب</span><b>${c?c[0]+" "+c[1]:"—"}</b></div></div>
+  <section class="card"><div class="card-h"><h3 class="m0">عملات كل يوم</h3><span class="small muted">الحصّالة تمتلئ عند ${h(T)}</span></div>${i.barChart({labels:d.map(r=>r.label),series:[{name:"العملات",color:"var(--ro)",values:m}],h:170})}</section>
+  ${$.length?`<section class="card"><div class="card-h"><h3 class="m0">أهداف لم تكتمل</h3><span class="small muted">هل ما زالت مهمة؟</span></div>${$.map(r=>`<div class="xrow"><span class="tick ghost sm"></span><span class="x-t">${y(r[1])}</span><span class="small muted">${y(L(r[0]).toLocaleDateString(i.loc(),{weekday:"short",day:"numeric"}))}</span></div>`).join("")}</section>`:""}
+  <div class="rv-list">${a.length?a.map(r=>{const p=r[0],g=r[1],N=w(g),nt=L(p),ot=g.tasks.filter(lt=>lt.done).length;return`<button type="button" class="rv-card ${N>=T?"full":""}" data-rv="${p}"><span class="rv-jar">${H(N,!1)}<small class="num">${h(N)}</small></span><span class="rv-body"><b>${y(nt.toLocaleDateString(i.loc(),{weekday:"long",day:"numeric",month:"long"}))}</b>${g.intent?`<span>🎯 ${y(g.intent)}</span>`:""}<span class="small muted">${g.tasks.length?`✅ ${h(ot)}/${h(g.tasks.length)} أهداف`:""}${(g.extra||[]).length?` · ⭐ ${h(g.extra.length)}`:""}${(g.journal||"").trim()?" · 📝 كتبت":""}</span></span><span class="rv-mood">${g.mood!=null?O[g.mood][0]:""}</span></button>`}).join(""):'<div class="empty">لا صفحات مكتوبة في هذه الفترة. ابدأ بصفحة اليوم.</div>'}</div>`}function st(e){i.bindPnav(e,(t,a)=>{t?(J=t,I=0):I=Math.min(0,I+a),f()}),e.querySelectorAll("[data-rv]").forEach(t=>{t.onclick=()=>{const a=t.dataset.rv,n=q()[a];V(a,n,!0)}})}window.Day={render:f,open(){j=null,f()}},i.views.day={open(e){D="today",j=e&&e!==S()&&/^\d{4}-\d\d-\d\d$/.test(e)?e:null,f()},render:f}})();

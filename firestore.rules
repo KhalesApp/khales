@@ -21,6 +21,18 @@ service cloud.firestore {
       allow read, update, delete: if false;
     }
 
+    // المزامنة: من يملك رمز المزامنة (١٦ خانة عشوائية) يقرأ نسخته ويحدّثها. لا سرد ولا حذف.
+    match /sync/{code} {
+      allow get: if signedIn();
+      allow list, delete: if false;
+      allow create, update: if signedIn()
+        && code.size() == 16
+        && request.resource.data.data is string && request.resource.data.data.size() < 950000
+        && request.resource.data.updatedAt is string
+        && request.resource.data.device is string
+        && request.resource.data.keys().size() <= 5;
+    }
+
     match /hakbas/{hid} {
       // من عنده رمز الهكبة يقرأها (الرمز عشوائي ولا يمكن تخمينه)، ولا أحد يقدر يسرد كل الهكبات
       allow get: if signedIn();

@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>خالص</title>
-<meta name="description" content="خالص: تطبيق يساعدك تسدد ديونك مهما كان حجمها، ويعلّمك كيف تزيد دخلك. يعمل بدون إنترنت.">
-<meta name="theme-color" content="#0A7A5A">
+<meta name="description" content="خالص: رفيقك لسداد ديونك، وتنظيم دخلك ومصاريفك وهكبتك ويومك. يعمل بدون إنترنت.">
+<meta name="theme-color" content="#0B3B33">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -13,28 +13,39 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="خالص">
 <link rel="stylesheet" href="style.css">
+<script>
+/* شاشة خطأ واضحة بدل الشاشة الفارغة على المتصفحات القديمة */
+window.__booted=false;
+function __fatal(m){ if(window.__booted) return; var d=document.getElementById('fatal'); if(!d) return; d.style.display='block'; var c=document.getElementById('fatalMsg'); if(c&&m) c.textContent=m; }
+window.onerror=function(m,s,l){ __fatal(m+' ['+String(s||'').split('/').pop()+':'+l+']'); };
+setTimeout(function(){ __fatal('لم يكتمل تحميل التطبيق'); },9000);
+</script>
 </head>
 <body>
 <div class="topband" aria-hidden="true"></div>
 
-<!-- ===== شاشة الترحيب / حساب جديد ===== -->
+<div id="fatal" style="display:none;padding:24px 18px;max-width:520px;margin:0 auto;line-height:1.9">
+  <h2 style="margin:0 0 8px">تعذّر تشغيل خالص على هذا المتصفح</h2>
+  <p>غالبًا متصفح الجوال قديم. جرّب بالترتيب:</p>
+  <p>١) حدّث <b>Google Chrome</b> من متجر Play.<br>٢) حدّث <b>Android System WebView</b> من المتجر.<br>٣) أغلق التطبيق وافتحه من جديد وأنت متصل بالإنترنت.</p>
+  <p>إذا استمرت المشكلة، أرسل لنا هذا السطر:</p>
+  <code id="fatalMsg" dir="ltr" style="display:block;padding:10px;border:1px dashed #999;border-radius:8px;word-break:break-all"></code>
+  <p><button onclick="location.reload()" style="font:inherit;padding:10px 18px;border-radius:10px;border:1px solid #0A7A5A;background:#0A7A5A;color:#fff">إعادة المحاولة</button></p>
+</div>
+
+<!-- ===== الترحيب / حساب جديد ===== -->
 <section id="setup" class="overlay" hidden>
   <div class="setup-wrap">
-    <div class="brand-hero">
-      <svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" class="mk-track"/><path d="M24 7a17 17 0 1 1-13 6" class="mk-arc"/><path d="M17 24.5l5 5 9-10" class="mk-check"/></svg>
+    <div class="welcome-hero">
+      <div class="mascot" id="setupMascot"></div>
       <div>
-        <h1 id="setupTitle">أهلًا بك في خالص</h1>
-        <p class="muted" id="setupSub">سجّل دخلك وسدادك كل يوم، واعرف بالضبط متى تصبح خالصًا من الدين. كل بياناتك تبقى في جوالك، والتطبيق يعمل بدون إنترنت.</p>
+        <h1 id="setupTitle">أهلًا، أنا حُرّ</h1>
+        <p class="m0" id="setupSub">رفيقك في «خالص». نسدد دينك خطوة خطوة، وننظم دخلك ومصاريفك ويومك، حتى تصير حرًّا مثلي. بياناتك تبقى في جوالك، والتطبيق يعمل بدون إنترنت.</p>
       </div>
-    </div>
-    <div class="feat" id="setupFeat">
-      <div><b>ديوني</b><span>حساب دقيق لكل دين وكل عملة، وموعد نهايتك</span></div>
-      <div><b>النصائح</b><span>أكثر من ١٢٠ نصيحة للسداد وزيادة الدخل</span></div>
-      <div><b>التعلّم</b><span>مسار دروس قصيرة واختبارات تكسب منها نقاطًا</span></div>
     </div>
 
     <div class="card step">
-      <h2>١. صاحب الحساب</h2>
+      <h2><span class="stepn">١</span> عرّفني عليك</h2>
       <label>الاسم<input id="oName" autocomplete="name" placeholder="مثال: أبو محمد"></label>
       <label>العملة التي تحسب بها دخلك<select id="oBase"></select></label>
       <label class="check-line"><input type="checkbox" id="oSplit"> أقسم دخلي اليومي على شركاء، ونصيبي جزء منه</label>
@@ -42,36 +53,40 @@
     </div>
 
     <div class="card step">
-      <h2>٢. الدين</h2>
-      <label>اسم الدائن<input id="oCred" placeholder="مثال: أبو أحمد، أو البقالة"></label>
-      <div id="oDebts" class="step"></div>
-      <div class="row"><button class="btn sm" id="oAddDebt" type="button">+ مبلغ آخر أو عملة أخرى</button></div>
-      <div id="oRates" class="step"></div>
-      <p class="small muted m0">تقدر تضيف دائنين آخرين لاحقًا من «ديوني ← الدائنون».</p>
+      <h2><span class="stepn">٢</span> دينك</h2>
+      <label class="check-line"><input type="checkbox" id="oNoDebt"> ما عندي دين الآن، أريد تنظيم دخلي ومصاريفي ويومي</label>
+      <div id="oDebtBox" class="step">
+        <label>اسم الدائن<input id="oCred" placeholder="مثال: أبو أحمد، أو البقالة"></label>
+        <div id="oDebts" class="step"></div>
+        <div class="row"><button class="btn sm" id="oAddDebt" type="button">+ مبلغ آخر أو عملة أخرى</button></div>
+        <div id="oRates" class="step"></div>
+        <p class="small muted m0">تقدر تضيف دائنين آخرين لاحقًا من «مالي ← الديون».</p>
+      </div>
     </div>
 
-    <div class="row"><button class="btn primary lg" id="oStart" type="button">ابدأ</button><button class="btn ghost" id="oCancel" type="button" hidden>إلغاء</button><span class="msg err" id="oMsg"></span></div>
+    <div class="row"><button class="btn primary lg" id="oStart" type="button">يلا نبدأ</button><button class="btn ghost" id="oCancel" type="button" hidden>إلغاء</button><span class="msg err" id="oMsg"></span></div>
 
-    <div class="card step hk-free" id="oHakbaBox">
+    <div class="card step soft-bl" id="oHakbaBox">
       <h3>جاي من رابط هكبة؟</h3>
-      <p class="small muted m0">قسم الهكبة مجاني ولا يحتاج دفتر ديون. ادخل مباشرة وانضم لهكبتك.</p>
-      <div class="row"><button class="btn bl-btn" id="oHakba" type="button">ادخل قسم الهكبة</button></div>
+      <p class="small muted m0">قسم الهكبة مجاني ولا يحتاج إعدادًا. ادخل مباشرة وانضم لهكبتك.</p>
+      <div class="row"><button class="btn bl" id="oHakba" type="button">ادخل قسم الهكبة</button></div>
     </div>
 
     <div class="card step" id="oImportBox">
-      <h3>عندك نسخة احتياطية؟</h3>
-      <p class="small muted m0">لو كنت تستخدم التطبيق من قبل، افتح ملف النسخة الاحتياطية ويرجع كل شيء.</p>
-      <div class="row"><button class="btn" id="oImport" type="button">فتح نسخة احتياطية</button><span class="msg" id="oImpMsg"></span></div>
+      <h3>كنت تستخدم خالص من قبل؟</h3>
+      <p class="small muted m0">استرجع بياناتك برمز المزامنة، أو من ملف نسخة احتياطية.</p>
+      <div class="row"><button class="btn primary sm" id="oSync" type="button">عندي رمز مزامنة</button><button class="btn sm" id="oImport" type="button">فتح ملف نسخة احتياطية</button></div>
+      <span class="msg" id="oImpMsg"></span>
     </div>
   </div>
 </section>
 
-<!-- ===== شاشة التفعيل ===== -->
+<!-- ===== التفعيل ===== -->
 <section id="lock" class="overlay" hidden>
   <div class="setup-wrap narrow">
-    <div class="brand-hero">
-      <svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" class="mk-track"/><path d="M24 7a17 17 0 1 1-13 6" class="mk-arc"/><path d="M17 24.5l5 5 9-10" class="mk-check"/></svg>
-      <div><h1>فعّل خالص</h1><p class="muted m0" id="lockSub">انتهت فترة التجربة المجانية. أدخل رمز التفعيل لتكمل، وبياناتك كلها محفوظة كما هي.</p></div>
+    <div class="welcome-hero">
+      <div class="mascot" id="lockMascot"></div>
+      <div><h1>فعّل خالص</h1><p class="m0" id="lockSub"></p></div>
     </div>
     <div class="card step">
       <label>رمز التفعيل<input id="codeIn" dir="ltr" class="code-in" placeholder="XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
@@ -79,15 +94,15 @@
       <a class="btn gold" id="buyLink" href="#" target="_blank" rel="noopener" hidden>اشترِ رمز التفعيل</a>
       <p class="small muted m0" id="buyHint"></p>
     </div>
-    <div class="card step">
-      <h3>احفظ بياناتك</h3>
-      <p class="small muted m0">تقدر تحفظ نسخة احتياطية من بياناتك في أي وقت، حتى قبل التفعيل.</p>
-      <div class="row"><button class="btn" id="lockExport" type="button">حفظ نسخة احتياطية</button></div>
-    </div>
-    <div class="card step hk-free">
+    <div class="card step soft-bl">
       <h3>قسم الهكبة مجاني</h3>
       <p class="small muted m0">تقدر تستمر في استخدام الهكبة مع جماعتك بدون تفعيل.</p>
-      <div class="row"><button class="btn bl-btn" id="lockHakba" type="button">افتح الهكبة</button></div>
+      <div class="row"><button class="btn bl" id="lockHakba" type="button">افتح الهكبة</button></div>
+    </div>
+    <div class="card step">
+      <h3>بياناتك محفوظة</h3>
+      <p class="small muted m0">تقدر تحفظ نسخة من بياناتك في أي وقت، حتى قبل التفعيل.</p>
+      <div class="row"><button class="btn sm" id="lockExport" type="button">حفظ نسخة احتياطية</button></div>
     </div>
   </div>
 </section>
@@ -96,10 +111,11 @@
 <div id="app" hidden>
   <header class="appbar">
     <div class="appbar-in">
-      <div class="logo"><svg class="mark sm" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" class="mk-track"/><path d="M24 7a17 17 0 1 1-13 6" class="mk-arc"/><path d="M17 24.5l5 5 9-10" class="mk-check"/></svg><b>خالص</b></div>
-      <button class="who-chip" id="whoChip" type="button" aria-label="تبديل الحساب"><span class="av" id="whoAv"></span><span id="whoName"></span><svg viewBox="0 0 24 24" class="ic xs"><path d="M6 9l6 6 6-6"/></svg></button>
-      <button class="icon-btn me-btn" id="meBtn" type="button" aria-label="حسابي والإعدادات"><svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-      <div class="xp" title="نقاطك"><span class="lvl" id="lvl">١</span><div class="xp-txt"><b id="xp" class="num">٠</b><div class="xpbar"><i id="xpbar"></i></div></div></div>
+      <button class="logo" id="logoBtn" type="button" aria-label="الرئيسية"><svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" class="mk-track"/><path d="M24 7a17 17 0 1 1-13 6" class="mk-arc"/><path d="M17 24.5l5 5 9-10" class="mk-check"/></svg><b>خالص</b></button>
+      <button class="who-chip" id="whoChip" type="button" aria-label="تبديل الحساب"><span class="av" id="whoAv"></span><span class="who-n" id="whoName"></span></button>
+      <span class="sync-dot" id="syncDot" hidden title="المزامنة"></span>
+      <button class="icon-btn" id="meBtn" type="button" aria-label="حسابي والإعدادات"><svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+      <button class="xp" id="xpPill" type="button" title="نقاطك ومستواك"><span class="lvl num" id="lvl">١</span><span class="xp-txt"><b id="xp" class="num">٠</b><span class="xpbar"><i id="xpbar"></i></span></span></button>
     </div>
   </header>
 
@@ -107,162 +123,27 @@
     <div class="banner upd" id="updBanner" hidden><span class="small"><b>نسخة جديدة من خالص جاهزة.</b> بياناتك تبقى كما هي.</span><button class="btn sm primary" id="updBtn" type="button">حدّث الآن</button></div>
     <div class="banner" id="trialBanner" hidden><span class="small" id="trialText"></span><button class="btn sm" id="trialAct" type="button">فعّل الآن</button></div>
     <div class="banner" id="iosHint" hidden><span class="small">لتثبيت خالص على الآيفون: زر المشاركة في سفاري ← «إضافة إلى الشاشة الرئيسية».</span><button class="btn sm ghost" id="iosClose" type="button">حسنًا</button></div>
-    <div class="banner fb-banner" id="fbHint" hidden><span class="small">كيف تجربتك مع خالص حتى الآن؟ رأيك يحدد التحديث القادم.</span><div class="row"><button class="btn sm primary" id="fbHintGo" type="button">قيّم التطبيق</button><button class="btn sm ghost" id="fbHintNo" type="button">لاحقًا</button></div></div>
-    <div class="banner" id="backupHint" hidden><span class="small" id="backupHintText"></span><div class="row"><button class="btn sm primary" id="backupNow" type="button">احفظ نسخة</button><button class="btn sm ghost" id="backupLater" type="button">لاحقًا</button></div></div>
+    <div class="banner" id="backupHint" hidden><span class="small" id="backupHintText"></span><div class="row"><button class="btn sm primary" id="backupNow" type="button">فعّل المزامنة</button><button class="btn sm ghost" id="backupLater" type="button">لاحقًا</button></div></div>
+    <div class="banner upd" id="fbHint" hidden><span class="small">كيف تجربتك مع خالص؟ رأيك يحدد التحديث القادم.</span><div class="row"><button class="btn sm primary" id="fbHintGo" type="button">قيّم التطبيق</button><button class="btn sm ghost" id="fbHintNo" type="button">لاحقًا</button></div></div>
   </div>
 
-  <!-- ديوني -->
-  <main class="view" id="v-debts" data-sec="debts">
-    <section class="hero">
-      <div class="hero-top">
-        <div class="ring-wrap">
-          <svg viewBox="0 0 120 120" class="ring" aria-hidden="true"><circle cx="60" cy="60" r="50" class="ring-track"/><circle cx="60" cy="60" r="50" class="ring-val" id="ringVal"/></svg>
-          <div class="ring-center"><b id="ringPct" class="num">٠٪</b><span>مسدد</span></div>
-        </div>
-        <div class="hero-txt">
-          <span class="hero-lbl">المتبقي حتى تصبح خالصًا</span>
-          <div class="hero-big num"><span id="remaining">—</span> <small id="baseUnit"></small></div>
-          <div class="hero-sub num">مسدد <b id="paidTotal">—</b> من <b id="debtTotal">—</b></div>
-          <div class="hero-date"><span>تنتهي تقريبًا في</span><b id="finishDate">—</b></div>
-        </div>
-      </div>
-      <div class="milestones" id="milestones"></div>
-      <div id="pacePill" class="pace"></div>
-    </section>
+  <main class="view" id="v-home"><div id="homeRoot" class="vroot"></div></main>
+  <main class="view" id="v-money" hidden><div id="moneyRoot" class="vroot"></div></main>
+  <main class="view" id="v-day" hidden><div id="dayRoot" class="vroot"></div></main>
+  <main class="view" id="v-hakba" hidden><div id="hakbaRoot" class="vroot"></div></main>
+  <main class="view" id="v-learn" hidden><div id="learnRoot" class="vroot"></div></main>
 
-    <section class="card form" id="dayForm">
-      <div class="card-h"><h2 id="formTitle">سجّل يومك</h2><span class="small muted">الأرقام العربية والإنجليزية مقبولة</span></div>
-      <div class="grid3">
-        <label>التاريخ<input id="fDate" type="date"></label>
-        <label>دخل اليوم<input id="fIncome" inputmode="decimal" placeholder="٣٠٠٠٠"></label>
-        <div id="payInputs" class="contents"></div>
-      </div>
-      <label id="sideWrap" hidden>دخل إضافي لك وحدك اليوم (لا يُقسم، يُضاف لنصيبك)<input id="fSide" inputmode="decimal" placeholder="مثال: ٥٠٠٠ من شغل جانبي"></label>
-      <label>ملاحظة عن اليوم (اختياري)<input id="fNote" placeholder="مثال: يوم زحمة، أو مصروف مفاجئ"></label>
-      <div class="live num">
-        <div><span id="lShareLbl">نصيبك</span><b id="lShare">—</b></div>
-        <div><span>نسبة السداد</span><b id="lRatio">—</b></div>
-        <div><span>يبقى لك</span><b id="lLeft">—</b></div>
-      </div>
-      <div class="row">
-        <button class="btn primary" id="saveBtn" type="button">حفظ اليوم</button>
-        <button class="btn ghost" id="clearBtn" type="button">يوم جديد</button>
-        <button class="btn danger" id="delBtn" type="button" hidden>حذف هذا اليوم</button>
-      </div>
-      <div id="confirmBox"></div>
-      <div class="msg" id="msg" role="status"></div>
-      <details class="quick">
-        <summary>إدخال سريع بطريقة الكتابة المعتادة</summary>
-        <p class="small muted">الصق سطرًا أو أكثر بهذا الشكل: <span class="num">٣٠٠٠ تاريخ ١/١١/٢٠٢٦ دخل اليوم ٣٠٠٠٠</span> (المسدد أولًا، ثم التاريخ، ثم الدخل).</p>
-        <label id="bulkCredWrap">السداد يُحسب لـ<select id="bulkCred"></select></label>
-        <textarea id="bulk" placeholder="٣٠٠٠ تاريخ ١/١١/٢٠٢٦ دخل اليوم ٣٠٠٠٠"></textarea>
-        <div class="row"><button class="btn sm" id="bulkBtn" type="button">قراءة الأسطر وحفظها</button><span class="small muted" id="bulkMsg"></span></div>
-      </details>
-    </section>
-
-    <section class="card">
-      <div class="card-h"><h2>مهام اليوم</h2><span class="tag gold">+٥ نقاط لكل مهمة</span></div>
-      <div class="chk" id="chk"></div>
-    </section>
-
-    <section class="card">
-      <div class="seg" role="tablist" id="debtSeg">
-        <button role="tab" data-seg="overview" aria-selected="true">نظرة عامة</button>
-        <button role="tab" data-seg="charts" aria-selected="false">الرسوم</button>
-        <button role="tab" data-seg="sim" aria-selected="false">المحاكي</button>
-        <button role="tab" data-seg="log" aria-selected="false">السجل</button>
-        <button role="tab" data-seg="creds" aria-selected="false">الدائنون</button>
-      </div>
-
-      <div class="panel" id="s-overview">
-        <div class="kpis num" id="kpis"></div>
-        <div id="credSumBox" hidden><h3>كل دائن</h3><div class="credsum" id="credSum"></div></div>
-        <div><h3>تركيبة الدين حسب العملة</h3><div class="mix" id="mix"></div><div class="mix-legend num" id="mixLegend"></div></div>
-        <div><h3>ملاحظات على أرقامك</h3><ul class="insights" id="insights"></ul></div>
-      </div>
-
-      <div class="panel" id="s-charts" hidden>
-        <div>
-          <h3>الدخل مقابل السداد (آخر ٣١ يومًا)</h3>
-          <div class="legend"><span><i class="dot" style="background:var(--share)"></i><span id="legShare">نصيبك من الدخل</span></span><span><i class="dot" style="background:var(--em)"></i>المسدد</span></div>
-          <div class="chartbox" id="chartDaily"></div>
-        </div>
-        <div><h3>متوسط الدخل حسب يوم الأسبوع</h3><div class="chartbox" id="chartWeek"></div></div>
-      </div>
-
-      <div class="panel" id="s-sim" hidden>
-        <p class="small muted m0">حرّك المؤشرات وشاهد كيف يتغير موعد خلاصك.</p>
-        <label>كم تسدد يوميًا؟ <b class="num ink" id="simPayLbl"></b><input type="range" id="simPay"></label>
-        <label>دفعة إضافية كل شهر <b class="num ink" id="simLumpLbl"></b><input type="range" id="simLump"></label>
-        <div class="grid3 num">
-          <div class="kpi"><span>أيام حتى تصبح خالصًا</span><b id="simDays">—</b></div>
-          <div class="kpi"><span>التاريخ المتوقع</span><b id="simDate">—</b></div>
-          <div class="kpi"><span>مقارنة بمعدلك الحالي</span><b id="simDiff">—</b></div>
-        </div>
-        <p class="small muted m0" id="simNote"></p>
-      </div>
-
-      <div class="panel" id="s-log" hidden>
-        <p class="small muted m0">اضغط على أي يوم لتعديله.</p>
-        <div class="tablebox" id="logBox"></div>
-      </div>
-
-      <div class="panel" id="s-creds" hidden>
-        <div><h3>العملات وأسعار الصرف</h3><p class="small muted" id="ratesHint"></p><div id="curList" class="step"></div>
-          <div class="row"><select id="addCurSel" class="auto"></select><button class="btn sm" id="addCurBtn" type="button">إضافة عملة</button></div></div>
-        <div><h3>الدائنون</h3><div id="credList" class="step"></div>
-          <div class="row"><button class="btn sm" id="addCredBtn" type="button">+ دائن جديد</button></div></div>
-        <div class="row"><button class="btn primary" id="saveDebts" type="button">حفظ التغييرات</button><span class="msg" id="debtMsg"></span></div>
-      </div>
-    </section>
-  </main>
-
-  <!-- الهكبة -->
-  <main class="view" id="v-hakba" data-sec="hakba" hidden><div id="hakbaRoot" class="hk-root"></div></main>
-
-  <!-- يومي -->
-  <main class="view" id="v-day" data-sec="day" hidden><div id="dayRoot" class="hk-root"></div></main>
-
-  <!-- النصائح -->
-  <main class="view" id="v-tips" data-sec="tips" hidden>
-    <section class="hero gold-hero">
-      <span class="hero-lbl">نصيحة اليوم</span>
-      <span class="tag light" id="todayTipCat"></span>
-      <h2 class="today-title" id="todayTipTitle"></h2>
-      <p class="today-body" id="todayTipBody"></p>
-      <div class="row">
-        <button class="btn on-hero" id="todayCopy" type="button">نسخ</button>
-        <button class="btn on-hero" id="todayFav" type="button">حفظ</button>
-        <button class="btn on-hero solid" id="todayApply" type="button">طبّقتها +٥</button>
-      </div>
-    </section>
-    <section class="card">
-      <div class="card-h"><h2>مكتبة النصائح</h2><span class="small muted num" id="tipsCount"></span></div>
-      <div class="chips" id="tipChips" role="tablist"></div>
-      <p class="small muted m0">اضغط على البطاقة لتقلبها وتقرأ النصيحة.</p>
-      <div class="flips" id="tipGrid"></div>
-      <div class="row center"><button class="btn" id="tipMore" type="button">عرض المزيد</button></div>
-    </section>
-  </main>
-
-  <!-- التعلّم -->
-  <main class="view" id="v-learn" data-sec="learn" hidden>
-    <section class="hero violet-hero">
-      <span class="hero-lbl">رحلة التعلّم</span>
-      <h2 class="today-title">من مديون إلى خالص في ١٨ درسًا</h2>
-      <div class="learn-stats num"><div><b id="lDone">٠</b><span>دروس مكتملة</span></div><div><b id="lXp">٠</b><span>نقطة من التعلّم</span></div><div><b id="lAcc">—</b><span>دقة إجاباتك</span></div></div>
-      <div class="lbar"><i id="lBar"></i></div>
-    </section>
-    <section class="path" id="path"></section>
-  </main>
-
-  <!-- حسابي -->
-  <main class="view" id="v-me" data-sec="me" hidden>
+  <main class="view" id="v-me" hidden><div class="vroot">
     <section class="card">
       <div class="card-h"><h2>الحسابات</h2><span class="small muted">لكل حساب ديونه وسجله ونقاطه</span></div>
       <div class="profiles" id="profiles"></div>
       <div class="row"><button class="btn primary sm" id="addProfile" type="button">+ حساب جديد</button></div>
       <div id="profConfirm"></div>
+    </section>
+
+    <section class="card" id="syncCard">
+      <div class="card-h"><h2>المزامنة والنسخ السحابي</h2></div>
+      <div id="syncBox" class="step"></div>
     </section>
 
     <section class="card" id="meSettings">
@@ -275,7 +156,7 @@
       <div class="row"><button class="btn primary sm" id="saveSettings" type="button">حفظ</button><span class="msg" id="setMsg"></span></div>
     </section>
 
-    <section class="card fb-card" id="fbCard">
+    <section class="card" id="fbCard">
       <div class="card-h"><h2>رأيك يطوّر خالص</h2><span class="small muted">نقرأ كل رسالة</span></div>
       <div><span class="small muted">قيّم تجربتك</span><div class="stars" id="fbStars" role="radiogroup" aria-label="التقييم"></div></div>
       <div class="chips" id="fbKind" role="tablist"></div>
@@ -292,34 +173,32 @@
     </section>
 
     <section class="card">
-      <div class="card-h"><h2>النسخة الاحتياطية</h2></div>
-      <p class="small muted m0">بياناتك محفوظة في هذا الجوال فقط. احفظ نسخة كل أسبوع وأرسلها لنفسك على واتساب. النسخة تشمل كل الحسابات.</p>
-      <div class="row"><button class="btn primary sm" id="exportBtn" type="button">حفظ نسخة احتياطية</button><button class="btn sm" id="shareBtn" type="button" hidden>مشاركة (واتساب)</button><button class="btn sm" id="importBtn" type="button">استرجاع نسخة</button></div>
+      <div class="card-h"><h2>نسخة احتياطية كملف</h2></div>
+      <p class="small muted m0">ملف يحوي كل الحسابات، تحفظه عندك أو ترسله لنفسك على واتساب.</p>
+      <div class="row"><button class="btn sm" id="exportBtn" type="button">حفظ نسخة</button><button class="btn sm" id="shareBtn" type="button" hidden>مشاركة (واتساب)</button><button class="btn sm" id="importBtn" type="button">استرجاع نسخة</button></div>
       <div class="msg" id="bkMsg"></div>
       <div id="importConfirm"></div>
     </section>
 
     <section class="card">
       <div class="card-h"><h2>مسح كل البيانات</h2></div>
-      <p class="small muted m0">يحذف كل الحسابات من هذا الجوال. احفظ نسخة احتياطية قبلها.</p>
+      <p class="small muted m0">يحذف كل الحسابات من هذا الجوال. احفظ نسخة أو فعّل المزامنة قبلها.</p>
       <div class="row"><button class="btn danger sm" id="resetBtn" type="button">مسح كل البيانات</button></div>
       <div id="resetConfirm"></div>
       <p class="small muted m0" id="storeInfo"></p>
     </section>
-    <p class="small muted center m0">خالص · الإصدار ١٫٠</p>
-  </main>
+    <p class="small muted center m0">خالص · الإصدار ١٫٥</p>
+  </div></main>
 
   <nav class="tabbar" aria-label="الأقسام">
-    <button data-go="debts" class="on" type="button"><svg viewBox="0 0 24 24" class="ic"><path d="M12 4a8 8 0 1 1-7.4 5"/><path d="M8.5 12.2l2.3 2.3 4.7-4.8"/></svg><span>ديوني</span></button>
-    <button data-go="hakba" type="button"><span class="bdg num" hidden></span><svg viewBox="0 0 24 24" class="ic"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M3 19c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5M11 19c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5"/></svg><span>الهكبة</span></button>
+    <button data-go="home" class="on" type="button"><svg viewBox="0 0 24 24" class="ic"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg><span>الرئيسية</span></button>
+    <button data-go="money" type="button"><svg viewBox="0 0 24 24" class="ic"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 15h2"/></svg><span>مالي</span></button>
     <button data-go="day" type="button"><svg viewBox="0 0 24 24" class="ic"><path d="M7 5h10M8 5v2.5a1 1 0 0 1-.4.8C6.6 9 6 10.2 6 11.5V18a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-6.5c0-1.3-.6-2.5-1.6-3.2a1 1 0 0 1-.4-.8V5"/><circle cx="12" cy="15" r="2.2"/></svg><span>يومي</span></button>
-    <button data-go="tips" type="button"><svg viewBox="0 0 24 24" class="ic"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.8 10.6c.6.6.8 1.4.8 2.4h6c0-1 .2-1.8.8-2.4A6 6 0 0 0 12 3z"/></svg><span>النصائح</span></button>
-    <button data-go="learn" type="button"><svg viewBox="0 0 24 24" class="ic"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 11.5V16c0 1.5 2.2 3 5 3s5-1.5 5-3v-4.5"/></svg><span>التعلّم</span></button>
-
+    <button data-go="hakba" type="button"><span class="bdg num" hidden></span><svg viewBox="0 0 24 24" class="ic"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M3 19c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5M11 19c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5"/></svg><span>الهكبة</span></button>
+    <button data-go="learn" type="button"><svg viewBox="0 0 24 24" class="ic"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 11.5V16c0 1.5 2.2 3 5 3s5-1.5 5-3v-4.5"/></svg><span>تعلّم</span></button>
   </nav>
 </div>
 
-<!-- ورقة سفلية (الدروس، تبديل الحساب) -->
 <div class="sheet" id="sheet" hidden>
   <div class="sheet-back" id="sheetBack"></div>
   <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
@@ -328,13 +207,19 @@
   </div>
 </div>
 
+<canvas id="confetti" aria-hidden="true"></canvas>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="fileIn" accept="application/json,.json,text/plain" hidden>
+<script src="compat.js"></script>
 <script src="content.js"></script>
 <script src="learn.js"></script>
 <script src="firebase-config.js"></script>
-<script src="app.js"></script>
+<script src="core.js"></script>
 <script src="hakba.js"></script>
+<script src="sync.js"></script>
+<script src="home.js"></script>
+<script src="money.js"></script>
 <script src="day.js"></script>
+<script src="learnui.js"></script>
 </body>
 </html>
